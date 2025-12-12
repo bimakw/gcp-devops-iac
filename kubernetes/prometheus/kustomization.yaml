@@ -1,0 +1,13 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Prometheus Kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+  - rbac.yaml

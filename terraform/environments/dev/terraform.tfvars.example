@@ -1,0 +1,14 @@
+# Development Environment Configuration
+# Copy this file to terraform.tfvars and fill in your values
+
+project_id   = "your-gcp-project-id"
+project_name = "myproject"
+region       = "asia-southeast1"
+
+# Optional: Alert emails
+alert_emails = ["your-email@example.com"]
+
+# Optional: GitHub integration
+github_owner     = "your-github-username"
+github_repo_name = "your-repo-name"
+enable_cloudbuild = false

@@ -1,0 +1,9 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# ArgoCD Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: argocd

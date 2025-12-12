@@ -1,0 +1,94 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Cloud Build CI/CD Pipeline Configuration
+
+steps:
+  # Step 1: Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build'
+    args:
+      - 'build'
+      - '-t'
+      - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:${SHORT_SHA}'
+      - '-t'
+      - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:latest'
+      - '-f'
+      - 'Dockerfile'
+      - '.'
+
+  # Step 2: Run tests
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'test'
+    args:
+      - 'run'
+      - '--rm'
+      - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:${SHORT_SHA}'
+      - 'test'
+    waitFor: ['build']
+
+  # Step 3: Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_ARTIFACT_REPO}/${_PROJECT_NAME}'
+    waitFor: ['test']
+
+  # Step 4: Get GKE credentials
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'get-credentials'
+    args:
+      - 'container'
+      - 'clusters'
+      - 'get-credentials'
+      - '${_GKE_CLUSTER_NAME}'
+      - '--region'
+      - '${_REGION}'
+    waitFor: ['push']
+
+  # Step 5: Update Kubernetes deployment
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'deploy'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/${_PROJECT_NAME}'
+      - '${_PROJECT_NAME}=${_ARTIFACT_REPO}/${_PROJECT_NAME}:${SHORT_SHA}'
+      - '-n'
+      - '${_ENVIRONMENT}'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER_NAME}'
+    waitFor: ['get-credentials']
+
+  # Step 6: Wait for rollout
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'rollout-status'
+    args:
+      - 'rollout'
+      - 'status'
+      - 'deployment/${_PROJECT_NAME}'
+      - '-n'
+      - '${_ENVIRONMENT}'
+      - '--timeout=300s'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER_NAME}'
+    waitFor: ['deploy']
+
+images:
+  - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:${SHORT_SHA}'
+  - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+
+timeout: '1200s'
+
+substitutions:
+  _PROJECT_NAME: 'myapp'
+  _REGION: 'asia-southeast1'
+  _ENVIRONMENT: 'prod'
+  _ARTIFACT_REPO: 'asia-southeast1-docker.pkg.dev/PROJECT_ID/docker'
+  _GKE_CLUSTER_NAME: 'myapp-gke'

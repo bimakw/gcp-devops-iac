@@ -1,0 +1,51 @@
+# Production Environment Configuration
+# Copy this file to terraform.tfvars and fill in your values
+
+project_id   = "your-gcp-project-id"
+project_name = "myproject"
+region       = "asia-southeast1"
+
+# Network access control
+master_authorized_networks = [
+  {
+    cidr_block   = "10.0.0.0/8"
+    display_name = "Internal Network"
+  },
+  {
+    cidr_block   = "YOUR_OFFICE_IP/32"
+    display_name = "Office"
+  }
+]
+
+# Database
+enable_read_replica = true
+
+# Alerts
+alert_emails = [
+  "devops@yourcompany.com",
+  "oncall@yourcompany.com"
+]
+
+# GitHub
+github_owner     = "your-organization"
+github_repo_name = "your-repo-name"
+
+# Uptime checks
+uptime_checks = {
+  "api-health" = {
+    host          = "api.yourapp.com"
+    path          = "/health"
+    port          = 443
+    use_ssl       = true
+    validate_ssl  = true
+    content_match = "ok"
+  }
+  "web-health" = {
+    host          = "www.yourapp.com"
+    path          = "/"
+    port          = 443
+    use_ssl       = true
+    validate_ssl  = true
+    content_match = ""
+  }
+}

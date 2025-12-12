@@ -1,0 +1,120 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Cloud Build Release Pipeline (Tag-based)
+
+steps:
+  # Step 1: Build Docker image with version tag
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build'
+    args:
+      - 'build'
+      - '-t'
+      - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:${TAG_NAME}'
+      - '-t'
+      - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:latest'
+      - '-f'
+      - 'Dockerfile'
+      - '.'
+      - '--build-arg'
+      - 'VERSION=${TAG_NAME}'
+
+  # Step 2: Run full test suite
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'test'
+    args:
+      - 'run'
+      - '--rm'
+      - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:${TAG_NAME}'
+      - 'test'
+    waitFor: ['build']
+
+  # Step 3: Security scan
+  - name: 'aquasec/trivy'
+    id: 'security-scan'
+    args:
+      - 'image'
+      - '--exit-code'
+      - '1'
+      - '--severity'
+      - 'CRITICAL'
+      - '--no-progress'
+      - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:${TAG_NAME}'
+    waitFor: ['build']
+
+  # Step 4: Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_ARTIFACT_REPO}/${_PROJECT_NAME}'
+    waitFor: ['test', 'security-scan']
+
+  # Step 5: Get GKE credentials
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'get-credentials'
+    args:
+      - 'container'
+      - 'clusters'
+      - 'get-credentials'
+      - '${_GKE_CLUSTER_NAME}'
+      - '--region'
+      - '${_REGION}'
+    waitFor: ['push']
+
+  # Step 6: Deploy to production
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'deploy'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/${_PROJECT_NAME}'
+      - '${_PROJECT_NAME}=${_ARTIFACT_REPO}/${_PROJECT_NAME}:${TAG_NAME}'
+      - '-n'
+      - 'prod'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER_NAME}'
+    waitFor: ['get-credentials']
+
+  # Step 7: Verify deployment
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'rollout-status'
+    args:
+      - 'rollout'
+      - 'status'
+      - 'deployment/${_PROJECT_NAME}'
+      - '-n'
+      - 'prod'
+      - '--timeout=300s'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER_NAME}'
+    waitFor: ['deploy']
+
+  # Step 8: Create release notes
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'release-notes'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Release ${TAG_NAME} deployed successfully"
+        echo "Image: ${_ARTIFACT_REPO}/${_PROJECT_NAME}:${TAG_NAME}"
+        echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    waitFor: ['rollout-status']
+
+images:
+  - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:${TAG_NAME}'
+  - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+
+timeout: '1800s'
+
+substitutions:
+  _PROJECT_NAME: 'myapp'
+  _REGION: 'asia-southeast1'
+  _ARTIFACT_REPO: 'asia-southeast1-docker.pkg.dev/PROJECT_ID/docker'
+  _GKE_CLUSTER_NAME: 'myapp-gke'

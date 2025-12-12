@@ -1,0 +1,58 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Cloud Build PR Validation Pipeline
+
+steps:
+  # Step 1: Build Docker image (no push)
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build'
+    args:
+      - 'build'
+      - '-t'
+      - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:pr-${_PR_NUMBER}'
+      - '-f'
+      - 'Dockerfile'
+      - '.'
+
+  # Step 2: Run unit tests
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'unit-test'
+    args:
+      - 'run'
+      - '--rm'
+      - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:pr-${_PR_NUMBER}'
+      - 'test'
+    waitFor: ['build']
+
+  # Step 3: Run linting
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'lint'
+    args:
+      - 'run'
+      - '--rm'
+      - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:pr-${_PR_NUMBER}'
+      - 'lint'
+    waitFor: ['build']
+
+  # Step 4: Security scan with Trivy
+  - name: 'aquasec/trivy'
+    id: 'security-scan'
+    args:
+      - 'image'
+      - '--exit-code'
+      - '1'
+      - '--severity'
+      - 'HIGH,CRITICAL'
+      - '--no-progress'
+      - '${_ARTIFACT_REPO}/${_PROJECT_NAME}:pr-${_PR_NUMBER}'
+    waitFor: ['build']
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+
+timeout: '600s'
+
+substitutions:
+  _PROJECT_NAME: 'myapp'
+  _REGION: 'asia-southeast1'
+  _ARTIFACT_REPO: 'asia-southeast1-docker.pkg.dev/PROJECT_ID/docker'

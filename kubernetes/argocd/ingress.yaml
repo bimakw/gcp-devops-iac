@@ -1,0 +1,45 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# ArgoCD Ingress Configuration
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server-ingress
+  namespace: argocd
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "argocd-ip"
+    networking.gke.io/managed-certificates: "argocd-certificate"
+    networking.gke.io/v1beta1.FrontendConfig: "argocd-frontend-config"
+spec:
+  rules:
+    - host: argocd.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80
+---
+# Managed Certificate
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: argocd-certificate
+  namespace: argocd
+spec:
+  domains:
+    - argocd.example.com
+---
+# Frontend Config for HTTPS redirect
+apiVersion: networking.gke.io/v1beta1
+kind: FrontendConfig
+metadata:
+  name: argocd-frontend-config
+  namespace: argocd
+spec:
+  redirectToHttps:
+    enabled: true
+    responseCodeName: MOVED_PERMANENTLY_DEFAULT
