@@ -55,6 +55,7 @@ Production-ready GCP infrastructure using Terraform with full DevOps pipeline.
 - **Cloud Monitoring**: Metrics, logging, and alerting
 - **ArgoCD**: GitOps continuous deployment
 - **Prometheus + Grafana**: Application monitoring stack
+- **Terraform Validation Pipeline**: Automated security scanning & linting
 
 ## Prerequisites
 
@@ -167,6 +168,10 @@ gcp-devops-iac/
 - Secret Manager for sensitive data
 - VPC Service Controls (optional)
 - Binary Authorization (optional)
+- **Terraform Security Pipeline**:
+  - TFSec: Security vulnerability scanning
+  - Checkov: Policy-as-code compliance
+  - TFLint: Best practices enforcement
 
 ## Monitoring & Observability
 

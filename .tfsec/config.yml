@@ -1,0 +1,28 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# TFSec Configuration
+
+# Minimum severity to report
+minimum_severity: LOW
+
+# Exclude specific checks (with justification)
+exclude:
+  # GCP specific exclusions - uncomment if needed with justification
+  # - google-gke-use-rbac-permissions  # Using Workload Identity instead
+  # - google-gke-enforce-pod-security-policy  # PSP deprecated, using Pod Security Standards
+
+# Custom check severity overrides
+severity_overrides:
+  # Upgrade warnings to errors for critical security issues
+  google-gke-metadata-endpoints-disabled: ERROR
+  google-gke-enable-master-networks: ERROR
+  google-sql-encrypt-in-transit-data: ERROR
+  google-compute-no-public-ip: ERROR
+
+# Include paths
+include:
+  - "terraform/**/*.tf"
+
+# Exclude paths (test files, examples)
+exclude_path:
+  - "terraform/modules/**/examples/"
+  - "**/*_test.tf"
