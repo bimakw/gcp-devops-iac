@@ -1,0 +1,62 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# ConstraintTemplate: Block hostNetwork, hostPID, hostIPC
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sblockhostnamespace
+  annotations:
+    description: >-
+      Blocks pods from sharing the host's network, PID, or IPC namespaces.
+      These settings can break container isolation and pose security risks.
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sBlockHostNamespace
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            allowHostNetwork:
+              type: boolean
+              description: Allow hostNetwork
+            allowHostPID:
+              type: boolean
+              description: Allow hostPID
+            allowHostIPC:
+              type: boolean
+              description: Allow hostIPC
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sblockhostnamespace
+
+        violation[{"msg": msg}] {
+          not input_allow_host_network
+          input.review.object.spec.hostNetwork == true
+          msg := "hostNetwork is not allowed. Pods should not share the host's network namespace."
+        }
+
+        violation[{"msg": msg}] {
+          not input_allow_host_pid
+          input.review.object.spec.hostPID == true
+          msg := "hostPID is not allowed. Pods should not share the host's PID namespace."
+        }
+
+        violation[{"msg": msg}] {
+          not input_allow_host_ipc
+          input.review.object.spec.hostIPC == true
+          msg := "hostIPC is not allowed. Pods should not share the host's IPC namespace."
+        }
+
+        input_allow_host_network {
+          input.parameters.allowHostNetwork == true
+        }
+
+        input_allow_host_pid {
+          input.parameters.allowHostPID == true
+        }
+
+        input_allow_host_ipc {
+          input.parameters.allowHostIPC == true
+        }

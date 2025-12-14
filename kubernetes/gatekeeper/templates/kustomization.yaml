@@ -1,0 +1,12 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - k8s-required-labels.yaml
+  - k8s-block-privileged.yaml
+  - k8s-required-resources.yaml
+  - k8s-allowed-repos.yaml
+  - k8s-block-latest-tag.yaml
+  - k8s-block-host-namespace.yaml
+  - k8s-required-probes.yaml

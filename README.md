@@ -172,6 +172,11 @@ gcp-devops-iac/
   - TFSec: Security vulnerability scanning
   - Checkov: Policy-as-code compliance
   - TFLint: Best practices enforcement
+- **OPA Gatekeeper**: Kubernetes policy-as-code
+  - Block privileged containers
+  - Enforce resource limits
+  - Restrict image registries
+  - Require labels and probes
 
 ## Monitoring & Observability
 

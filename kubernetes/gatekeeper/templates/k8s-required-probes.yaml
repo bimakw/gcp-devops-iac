@@ -1,0 +1,64 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# ConstraintTemplate: Require liveness and readiness probes
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredprobes
+  annotations:
+    description: >-
+      Requires containers to have liveness and/or readiness probes defined.
+      Probes help Kubernetes manage container health and traffic routing.
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredProbes
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            probes:
+              type: array
+              description: List of required probes (livenessProbe, readinessProbe, startupProbe)
+              items:
+                type: string
+            exemptImages:
+              type: array
+              description: Images exempt from this policy
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequiredprobes
+
+        violation[{"msg": msg}] {
+          container := input_containers[_]
+          not is_exempt(container)
+          probe := input.parameters.probes[_]
+          not has_probe(container, probe)
+          msg := sprintf("Container <%v> does not have <%v> defined", [container.name, probe])
+        }
+
+        has_probe(container, "livenessProbe") {
+          container.livenessProbe
+        }
+
+        has_probe(container, "readinessProbe") {
+          container.readinessProbe
+        }
+
+        has_probe(container, "startupProbe") {
+          container.startupProbe
+        }
+
+        input_containers[c] {
+          c := input.review.object.spec.containers[_]
+        }
+
+        is_exempt(container) {
+          exempt_images := object.get(input, ["parameters", "exemptImages"], [])
+          img := container.image
+          exemption := exempt_images[_]
+          glob.match(exemption, ["/"], img)
+        }

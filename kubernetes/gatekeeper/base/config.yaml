@@ -1,0 +1,41 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Gatekeeper Configuration
+apiVersion: config.gatekeeper.sh/v1alpha1
+kind: Config
+metadata:
+  name: config
+  namespace: gatekeeper-system
+spec:
+  # Sync resources to OPA for referential constraints
+  sync:
+    syncOnly:
+      - group: ""
+        version: "v1"
+        kind: "Namespace"
+      - group: ""
+        version: "v1"
+        kind: "Pod"
+      - group: ""
+        version: "v1"
+        kind: "Service"
+      - group: "networking.k8s.io"
+        version: "v1"
+        kind: "Ingress"
+  # Exempt namespaces from admission control
+  match:
+    - excludedNamespaces:
+        - gatekeeper-system
+        - kube-system
+        - kube-public
+        - kube-node-lease
+        - cert-manager
+      processes:
+        - "*"
+  # Validation configuration
+  validation:
+    traces:
+      - user: "*"
+        kind:
+          group: ""
+          version: "v1"
+          kind: "Pod"

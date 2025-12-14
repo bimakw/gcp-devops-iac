@@ -1,0 +1,81 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# ConstraintTemplate: Require resource limits and requests
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredresources
+  annotations:
+    description: >-
+      Requires containers to have resource limits and requests set.
+      This ensures proper resource allocation and prevents resource starvation.
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredResources
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            limits:
+              type: array
+              description: List of required resource limits (cpu, memory)
+              items:
+                type: string
+            requests:
+              type: array
+              description: List of required resource requests (cpu, memory)
+              items:
+                type: string
+            exemptImages:
+              type: array
+              description: Images exempt from this policy
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequiredresources
+
+        import future.keywords.in
+
+        violation[{"msg": msg}] {
+          container := input_containers[_]
+          not is_exempt(container)
+          required_limits := object.get(input.parameters, "limits", [])
+          limit := required_limits[_]
+          not has_limit(container, limit)
+          msg := sprintf("Container <%v> does not have resource limit <%v> set", [container.name, limit])
+        }
+
+        violation[{"msg": msg}] {
+          container := input_containers[_]
+          not is_exempt(container)
+          required_requests := object.get(input.parameters, "requests", [])
+          request := required_requests[_]
+          not has_request(container, request)
+          msg := sprintf("Container <%v> does not have resource request <%v> set", [container.name, request])
+        }
+
+        has_limit(container, limit) {
+          container.resources.limits[limit]
+        }
+
+        has_request(container, request) {
+          container.resources.requests[request]
+        }
+
+        input_containers[c] {
+          c := input.review.object.spec.containers[_]
+        }
+
+        input_containers[c] {
+          c := input.review.object.spec.initContainers[_]
+        }
+
+        is_exempt(container) {
+          exempt_images := object.get(input, ["parameters", "exemptImages"], [])
+          img := container.image
+          exemption := exempt_images[_]
+          glob.match(exemption, ["/"], img)
+        }

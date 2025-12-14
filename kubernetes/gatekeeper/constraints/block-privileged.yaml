@@ -1,0 +1,42 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Constraint: Block privileged containers
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sBlockPrivileged
+metadata:
+  name: block-privileged-containers
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet", "ReplicaSet"]
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    exemptImages:
+      # Allow specific system images that require privileged mode
+      - "gcr.io/google-containers/*"
+---
+# Constraint: Block host namespaces
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sBlockHostNamespace
+metadata:
+  name: block-host-namespace
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet", "ReplicaSet"]
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    allowHostNetwork: false
+    allowHostPID: false
+    allowHostIPC: false

@@ -1,0 +1,53 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Constraint: Restrict images to allowed registries
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sAllowedRepos
+metadata:
+  name: allowed-image-repos
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet", "ReplicaSet"]
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    repos:
+      # GCP Artifact Registry - replace PROJECT_ID with your actual project
+      - "asia-southeast1-docker.pkg.dev/"
+      - "us-docker.pkg.dev/"
+      - "europe-docker.pkg.dev/"
+      # Google Container Registry (legacy)
+      - "gcr.io/"
+      - "asia.gcr.io/"
+      - "eu.gcr.io/"
+      - "us.gcr.io/"
+      # Official images
+      - "docker.io/library/"
+      - "ghcr.io/"
+      # Common trusted registries
+      - "quay.io/"
+      - "registry.k8s.io/"
+---
+# Constraint: Block :latest tag
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sBlockLatestTag
+metadata:
+  name: block-latest-tag
+spec:
+  enforcementAction: warn  # Start with warn, change to deny when ready
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    exemptImages: []

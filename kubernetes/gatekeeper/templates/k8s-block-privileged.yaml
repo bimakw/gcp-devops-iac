@@ -1,0 +1,58 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# ConstraintTemplate: Block privileged containers
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sblockprivileged
+  annotations:
+    description: >-
+      Blocks containers from running in privileged mode.
+      Privileged containers have root-level access to the host.
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sBlockPrivileged
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            exemptImages:
+              type: array
+              description: >-
+                Images that are exempt from this policy.
+                Supports glob patterns.
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sblockprivileged
+
+        import future.keywords.in
+
+        violation[{"msg": msg, "details": {"container": container.name}}] {
+          container := input_containers[_]
+          not is_exempt(container)
+          container.securityContext.privileged == true
+          msg := sprintf("Privileged container is not allowed: %v", [container.name])
+        }
+
+        input_containers[c] {
+          c := input.review.object.spec.containers[_]
+        }
+
+        input_containers[c] {
+          c := input.review.object.spec.initContainers[_]
+        }
+
+        input_containers[c] {
+          c := input.review.object.spec.ephemeralContainers[_]
+        }
+
+        is_exempt(container) {
+          exempt_images := object.get(input, ["parameters", "exemptImages"], [])
+          img := container.image
+          exemption := exempt_images[_]
+          glob.match(exemption, ["/"], img)
+        }

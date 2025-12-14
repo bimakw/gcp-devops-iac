@@ -1,0 +1,23 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Constraint: Require health probes on deployments
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredProbes
+metadata:
+  name: require-probes
+spec:
+  enforcementAction: warn  # Start with warn, change to deny when ready
+  match:
+    kinds:
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet"]
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    probes:
+      - readinessProbe
+      - livenessProbe
+    exemptImages:
+      # Init containers and jobs typically don't need probes
+      - "*/busybox:*"
+      - "*/alpine:*"

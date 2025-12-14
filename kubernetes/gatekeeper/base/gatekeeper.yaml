@@ -1,0 +1,259 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# OPA Gatekeeper Installation via Helm
+#
+# To install Gatekeeper, run:
+# helm repo add gatekeeper https://open-policy-agent.github.io/gatekeeper/charts
+# helm install gatekeeper/gatekeeper --name-template=gatekeeper --namespace gatekeeper-system --create-namespace
+#
+# Or use this HelmRelease with Flux/ArgoCD:
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gatekeeper-admin
+  namespace: gatekeeper-system
+  labels:
+    app.kubernetes.io/name: gatekeeper
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gatekeeper-manager-role
+  labels:
+    app.kubernetes.io/name: gatekeeper
+rules:
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["config.gatekeeper.sh"]
+    resources: ["configs"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["config.gatekeeper.sh"]
+    resources: ["configs/status"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: ["constraints.gatekeeper.sh"]
+    resources: ["*"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["templates.gatekeeper.sh"]
+    resources: ["constrainttemplates"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["templates.gatekeeper.sh"]
+    resources: ["constrainttemplates/finalizers"]
+    verbs: ["delete", "get", "patch", "update"]
+  - apiGroups: ["templates.gatekeeper.sh"]
+    resources: ["constrainttemplates/status"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: ["status.gatekeeper.sh"]
+    resources: ["*"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gatekeeper-manager-rolebinding
+  labels:
+    app.kubernetes.io/name: gatekeeper
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gatekeeper-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: gatekeeper-admin
+    namespace: gatekeeper-system
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gatekeeper-webhook-server-cert
+  namespace: gatekeeper-system
+  labels:
+    app.kubernetes.io/name: gatekeeper
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gatekeeper-webhook-service
+  namespace: gatekeeper-system
+  labels:
+    app.kubernetes.io/name: gatekeeper
+spec:
+  ports:
+    - name: https
+      port: 443
+      targetPort: 8443
+  selector:
+    app.kubernetes.io/name: gatekeeper
+    control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gatekeeper-controller-manager
+  namespace: gatekeeper-system
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    control-plane: controller-manager
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gatekeeper
+      control-plane: controller-manager
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gatekeeper
+        control-plane: controller-manager
+    spec:
+      serviceAccountName: gatekeeper-admin
+      containers:
+        - name: manager
+          image: openpolicyagent/gatekeeper:v3.14.0
+          args:
+            - --port=8443
+            - --logtostderr
+            - --exempt-namespace=gatekeeper-system
+            - --exempt-namespace=kube-system
+            - --operation=webhook
+            - --operation=mutation-webhook
+            - --disable-cert-rotation
+          ports:
+            - containerPort: 8443
+              name: webhook-server
+              protocol: TCP
+            - containerPort: 8888
+              name: metrics
+              protocol: TCP
+            - containerPort: 9090
+              name: healthz
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9090
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+          volumeMounts:
+            - mountPath: /certs
+              name: cert
+              readOnly: true
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: gatekeeper-webhook-server-cert
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - gatekeeper
+                topologyKey: kubernetes.io/hostname
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Exists
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Exists
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gatekeeper-audit
+  namespace: gatekeeper-system
+  labels:
+    app.kubernetes.io/name: gatekeeper
+    control-plane: audit-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gatekeeper
+      control-plane: audit-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gatekeeper
+        control-plane: audit-controller
+    spec:
+      serviceAccountName: gatekeeper-admin
+      containers:
+        - name: manager
+          image: openpolicyagent/gatekeeper:v3.14.0
+          args:
+            - --logtostderr
+            - --operation=audit
+            - --operation=status
+            - --audit-interval=60
+            - --audit-chunk-size=500
+            - --audit-from-cache
+            - --constraint-violations-limit=100
+          ports:
+            - containerPort: 8888
+              name: metrics
+              protocol: TCP
+            - containerPort: 9090
+              name: healthz
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9090
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000

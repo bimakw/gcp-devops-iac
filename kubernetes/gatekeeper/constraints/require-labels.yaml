@@ -1,0 +1,43 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Constraint: Require standard labels on all deployments
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredLabels
+metadata:
+  name: require-labels-on-deployments
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    message: "All deployments must have 'app', 'team', and 'environment' labels"
+    labels:
+      - key: app
+        allowedRegex: "^[a-z0-9-]+$"
+      - key: team
+        allowedRegex: "^[a-z0-9-]+$"
+      - key: environment
+        allowedRegex: "^(dev|staging|prod)$"
+---
+# Constraint: Require app label on all pods
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredLabels
+metadata:
+  name: require-app-label-on-pods
+spec:
+  enforcementAction: warn
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    message: "All pods should have an 'app' label"
+    labels:
+      - key: app

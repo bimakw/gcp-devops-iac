@@ -1,0 +1,28 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Constraint: Require resource limits and requests
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredResources
+metadata:
+  name: require-resource-limits
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    limits:
+      - memory
+      - cpu
+    requests:
+      - memory
+      - cpu
+    exemptImages:
+      # System images that may not need resource limits
+      - "k8s.gcr.io/*"
+      - "gcr.io/google-containers/*"
