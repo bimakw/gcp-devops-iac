@@ -1,0 +1,76 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# ConstraintTemplate: Block images with :latest tag
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sblocklatestag
+  annotations:
+    description: >-
+      Blocks container images using the :latest tag or no tag at all.
+      Immutable tags ensure reproducible deployments.
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sBlockLatestTag
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            exemptImages:
+              type: array
+              description: Images exempt from this policy
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sblocklatestag
+
+        violation[{"msg": msg}] {
+          container := input_containers[_]
+          not is_exempt(container)
+          has_latest_tag(container.image)
+          msg := sprintf("Container <%v> uses :latest tag. Use a specific version tag instead: %v", [container.name, container.image])
+        }
+
+        violation[{"msg": msg}] {
+          container := input_containers[_]
+          not is_exempt(container)
+          has_no_tag(container.image)
+          msg := sprintf("Container <%v> has no image tag. Use a specific version tag: %v", [container.name, container.image])
+        }
+
+        has_latest_tag(image) {
+          endswith(image, ":latest")
+        }
+
+        has_no_tag(image) {
+          not contains(image, ":")
+        }
+
+        has_no_tag(image) {
+          # Handle case where image has digest but no tag
+          contains(image, "@")
+          parts := split(image, "@")
+          not contains(parts[0], ":")
+        }
+
+        input_containers[c] {
+          c := input.review.object.spec.containers[_]
+        }
+
+        input_containers[c] {
+          c := input.review.object.spec.initContainers[_]
+        }
+
+        input_containers[c] {
+          c := input.review.object.spec.ephemeralContainers[_]
+        }
+
+        is_exempt(container) {
+          exempt_images := object.get(input, ["parameters", "exemptImages"], [])
+          img := container.image
+          exemption := exempt_images[_]
+          glob.match(exemption, ["/"], img)
+        }
