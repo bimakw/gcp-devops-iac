@@ -1,0 +1,29 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Cloud Build Trigger: Deploy to Development
+#
+# Trigger: On push to main branch
+# Action: Build and deploy to dev environment
+#
+name: deploy-to-dev
+description: Deploy to development environment on main branch push
+
+github:
+  owner: bimakw
+  name: gcp-devops-iac
+  push:
+    branch: ^main$
+
+filename: cloudbuild/cloudbuild-promote.yaml
+
+substitutions:
+  _ENV: dev
+
+includedFiles:
+  - 'src/**'
+  - 'kubernetes/apps/**'
+  - 'Dockerfile'
+
+tags:
+  - deploy
+  - dev
+  - automated

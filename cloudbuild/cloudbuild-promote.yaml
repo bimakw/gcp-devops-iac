@@ -1,0 +1,145 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Multi-Environment Promotion Pipeline
+#
+# Pipeline Flow:
+#   dev → (auto tests) → staging → (manual approval) → prod
+#
+# Triggers:
+#   - Dev: On merge to main
+#   - Staging: Triggered by successful dev deployment
+#   - Prod: Manual approval required
+#
+substitutions:
+  _ENV: 'dev'
+  _IMAGE_TAG: '${SHORT_SHA}'
+  _CLUSTER_NAME: 'gke-cluster'
+  _CLUSTER_REGION: 'asia-southeast1'
+  _PROJECT_ID: '${PROJECT_ID}'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+
+steps:
+  # ============================================
+  # Step 1: Build and Push Image
+  # ============================================
+  - id: 'build-image'
+    name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker build \
+          --tag "asia-southeast1-docker.pkg.dev/${_PROJECT_ID}/repo/app:${_IMAGE_TAG}" \
+          --tag "asia-southeast1-docker.pkg.dev/${_PROJECT_ID}/repo/app:${_ENV}-latest" \
+          --cache-from "asia-southeast1-docker.pkg.dev/${_PROJECT_ID}/repo/app:${_ENV}-latest" \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          .
+        docker push "asia-southeast1-docker.pkg.dev/${_PROJECT_ID}/repo/app:${_IMAGE_TAG}"
+        docker push "asia-southeast1-docker.pkg.dev/${_PROJECT_ID}/repo/app:${_ENV}-latest"
+
+  # ============================================
+  # Step 2: Update Kustomization with new image
+  # ============================================
+  - id: 'update-kustomization'
+    name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Install kustomize
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+        mv kustomize /usr/local/bin/
+
+        # Update image tag in kustomization
+        cd kubernetes/apps/overlays/${_ENV}
+        kustomize edit set image app=asia-southeast1-docker.pkg.dev/${_PROJECT_ID}/repo/app:${_IMAGE_TAG}
+
+        # Output rendered manifests for verification
+        echo "=== Rendered manifests for ${_ENV} ==="
+        kustomize build .
+
+  # ============================================
+  # Step 3: Deploy to target environment
+  # ============================================
+  - id: 'deploy'
+    name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - 'run'
+      - '--filename=kubernetes/apps/overlays/${_ENV}'
+      - '--cluster=${_CLUSTER_NAME}'
+      - '--location=${_CLUSTER_REGION}'
+      - '--project=${_PROJECT_ID}'
+
+  # ============================================
+  # Step 4: Wait for rollout
+  # ============================================
+  - id: 'wait-rollout'
+    name: 'gcr.io/cloud-builders/kubectl'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud container clusters get-credentials ${_CLUSTER_NAME} \
+          --region ${_CLUSTER_REGION} \
+          --project ${_PROJECT_ID}
+
+        NAMESPACE="app-${_ENV}"
+        DEPLOYMENT="${_ENV}-app"
+
+        echo "Waiting for rollout of ${DEPLOYMENT} in ${NAMESPACE}..."
+        kubectl rollout status deployment/${DEPLOYMENT} -n ${NAMESPACE} --timeout=300s
+
+        echo "Rollout completed successfully!"
+        kubectl get pods -n ${NAMESPACE} -l app.kubernetes.io/name=app
+
+  # ============================================
+  # Step 5: Run smoke tests
+  # ============================================
+  - id: 'smoke-tests'
+    name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        chmod +x scripts/smoke-test.sh
+        ./scripts/smoke-test.sh ${_ENV}
+
+  # ============================================
+  # Step 6: Trigger next environment (if applicable)
+  # ============================================
+  - id: 'trigger-promotion'
+    name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        case "${_ENV}" in
+          "dev")
+            echo "Dev deployment successful. Triggering staging promotion..."
+            gcloud builds triggers run promote-to-staging \
+              --project=${_PROJECT_ID} \
+              --substitutions=_IMAGE_TAG=${_IMAGE_TAG}
+            ;;
+          "staging")
+            echo "Staging deployment successful."
+            echo "Production deployment requires manual approval."
+            echo ""
+            echo "To promote to production, run:"
+            echo "  gcloud builds triggers run promote-to-prod --substitutions=_IMAGE_TAG=${_IMAGE_TAG}"
+            ;;
+          "prod")
+            echo "Production deployment completed successfully!"
+            echo "Image tag: ${_IMAGE_TAG}"
+            ;;
+        esac
+
+# Artifact metadata
+artifacts:
+  images:
+    - 'asia-southeast1-docker.pkg.dev/${_PROJECT_ID}/repo/app:${_IMAGE_TAG}'
+    - 'asia-southeast1-docker.pkg.dev/${_PROJECT_ID}/repo/app:${_ENV}-latest'
+
+# Build timeout
+timeout: '1200s'

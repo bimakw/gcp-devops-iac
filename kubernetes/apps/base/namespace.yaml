@@ -1,0 +1,8 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Base namespace - will be overridden by overlays
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: app
+  labels:
+    app.kubernetes.io/managed-by: kustomize

@@ -1,0 +1,35 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Cloud Build Trigger: Promote to Production
+#
+# Trigger: Manual approval required
+# Action: Deploy to production environment
+#
+# IMPORTANT: This trigger should be configured with approval requirements
+# in GCP Console: Cloud Build > Triggers > Edit > Approval
+#
+name: promote-to-prod
+description: Promote to production (requires manual approval)
+
+# Manual/API trigger only
+triggerTemplate:
+  projectId: ${PROJECT_ID}
+  branchName: main
+
+filename: cloudbuild/cloudbuild-promote.yaml
+
+substitutions:
+  _ENV: prod
+
+# Requires approval before execution
+# Configure in GCP Console:
+#   1. Edit trigger
+#   2. Enable "Require approval before build executes"
+#   3. Add approvers (users/groups)
+#
+# Alternatively, use Cloud Build Approvals API:
+#   gcloud builds approve BUILD_ID
+
+tags:
+  - deploy
+  - production
+  - approval-required
