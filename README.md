@@ -143,6 +143,8 @@ gcp-devops-iac/
 │   └── outputs.tf
 ├── kubernetes/
 │   ├── argocd/             # ArgoCD manifests
+│   ├── gatekeeper/         # OPA Gatekeeper policies
+│   ├── sealed-secrets/     # Sealed Secrets controller
 │   ├── prometheus/         # Prometheus stack
 │   ├── grafana/            # Grafana dashboards
 │   └── apps/               # Application deployments
@@ -177,6 +179,10 @@ gcp-devops-iac/
   - Enforce resource limits
   - Restrict image registries
   - Require labels and probes
+- **Sealed Secrets**: GitOps-friendly secret management
+  - Encrypt secrets for Git storage
+  - Automatic decryption in cluster
+  - ArgoCD integration
 
 ## Monitoring & Observability
 

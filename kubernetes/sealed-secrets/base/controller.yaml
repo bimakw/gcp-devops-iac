@@ -1,0 +1,198 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Sealed Secrets Controller
+# Based on Bitnami Sealed Secrets v0.24.x
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sealed-secrets-controller
+  namespace: sealed-secrets
+  labels:
+    app.kubernetes.io/name: sealed-secrets
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secrets-unsealer
+  labels:
+    app.kubernetes.io/name: sealed-secrets
+rules:
+  - apiGroups: ["bitnami.com"]
+    resources: ["sealedsecrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["bitnami.com"]
+    resources: ["sealedsecrets/status"]
+    verbs: ["update"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "create", "update", "delete", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sealed-secrets-controller
+  labels:
+    app.kubernetes.io/name: sealed-secrets
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: secrets-unsealer
+subjects:
+  - kind: ServiceAccount
+    name: sealed-secrets-controller
+    namespace: sealed-secrets
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sealed-secrets-key-admin
+  namespace: sealed-secrets
+  labels:
+    app.kubernetes.io/name: sealed-secrets
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sealed-secrets-key-admin
+  namespace: sealed-secrets
+  labels:
+    app.kubernetes.io/name: sealed-secrets
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sealed-secrets-key-admin
+subjects:
+  - kind: ServiceAccount
+    name: sealed-secrets-controller
+    namespace: sealed-secrets
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sealed-secrets-service-proxier
+  namespace: sealed-secrets
+  labels:
+    app.kubernetes.io/name: sealed-secrets
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    resourceNames: ["sealed-secrets-controller"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["services/proxy"]
+    resourceNames: ["sealed-secrets-controller", "http:sealed-secrets-controller:", "http:sealed-secrets-controller:http"]
+    verbs: ["create", "get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sealed-secrets-service-proxier
+  labels:
+    app.kubernetes.io/name: sealed-secrets
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sealed-secrets-service-proxier
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: system:authenticated
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sealed-secrets-controller
+  namespace: sealed-secrets
+  labels:
+    app.kubernetes.io/name: sealed-secrets
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+    - name: metrics
+      port: 8081
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: sealed-secrets
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sealed-secrets-controller
+  namespace: sealed-secrets
+  labels:
+    app.kubernetes.io/name: sealed-secrets
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sealed-secrets
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sealed-secrets
+    spec:
+      serviceAccountName: sealed-secrets-controller
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 65534
+      containers:
+        - name: controller
+          image: bitnami/sealed-secrets-controller:0.24.5
+          imagePullPolicy: IfNotPresent
+          args:
+            - --update-status
+            - --key-prefix=sealed-secrets-key
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: metrics
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
