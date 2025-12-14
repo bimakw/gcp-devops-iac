@@ -1,0 +1,84 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Production Environment Overlay
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: app-prod
+
+resources:
+  - ../../base
+  - pdb.yaml
+
+namePrefix: prod-
+
+commonLabels:
+  environment: production
+  tier: prod
+
+commonAnnotations:
+  note: "Production environment - handle with care"
+
+# Environment-specific patches
+patches:
+  # Deployment patches
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: app
+      spec:
+        replicas: 3
+        strategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxUnavailable: 1
+            maxSurge: 1
+        template:
+          spec:
+            topologySpreadConstraints:
+              - maxSkew: 1
+                topologyKey: topology.kubernetes.io/zone
+                whenUnsatisfiable: ScheduleAnyway
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: app
+            containers:
+              - name: app
+                env:
+                  - name: ENV
+                    value: "production"
+                  - name: LOG_LEVEL
+                    value: "warn"
+                  - name: DEBUG
+                    value: "false"
+                resources:
+                  requests:
+                    cpu: 200m
+                    memory: 256Mi
+                  limits:
+                    cpu: 1000m
+                    memory: 1Gi
+
+  # HPA patches - full scaling for production
+  - patch: |-
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: app
+      spec:
+        minReplicas: 3
+        maxReplicas: 10
+
+# Image configuration - use specific version tag
+images:
+  - name: app
+    newName: asia-southeast1-docker.pkg.dev/PROJECT_ID/repo/app
+    newTag: v1.0.0
+
+# ConfigMap for production environment
+configMapGenerator:
+  - name: app-config
+    literals:
+      - DATABASE_HOST=postgres-prod.db.svc.cluster.local
+      - REDIS_HOST=redis-prod.cache.svc.cluster.local
+      - FEATURE_FLAGS=

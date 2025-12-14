@@ -1,0 +1,13 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Pod Disruption Budget for Production
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: app-pdb
+  labels:
+    app.kubernetes.io/name: app
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: app

@@ -1,0 +1,71 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Development Environment Overlay
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: app-dev
+
+resources:
+  - ../../base
+
+namePrefix: dev-
+
+commonLabels:
+  environment: development
+  tier: dev
+
+commonAnnotations:
+  note: "Development environment - not for production use"
+
+# Environment-specific patches
+patches:
+  # Deployment patches
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: app
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: app
+                env:
+                  - name: ENV
+                    value: "development"
+                  - name: LOG_LEVEL
+                    value: "debug"
+                  - name: DEBUG
+                    value: "true"
+                resources:
+                  requests:
+                    cpu: 50m
+                    memory: 64Mi
+                  limits:
+                    cpu: 200m
+                    memory: 256Mi
+
+  # HPA patches - minimal scaling for dev
+  - patch: |-
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: app
+      spec:
+        minReplicas: 1
+        maxReplicas: 2
+
+# Image configuration - override with actual image
+images:
+  - name: app
+    newName: asia-southeast1-docker.pkg.dev/PROJECT_ID/repo/app
+    newTag: dev-latest
+
+# ConfigMap for dev environment
+configMapGenerator:
+  - name: app-config
+    literals:
+      - DATABASE_HOST=postgres-dev.db.svc.cluster.local
+      - REDIS_HOST=redis-dev.cache.svc.cluster.local
+      - FEATURE_FLAGS=debug,profiling

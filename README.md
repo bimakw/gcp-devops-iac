@@ -51,6 +51,7 @@ Production-ready GCP infrastructure using Terraform with full DevOps pipeline.
 - **Cloud SQL**: Managed PostgreSQL with high availability
 - **Artifact Registry**: Private Docker image repository
 - **Cloud Build**: CI/CD pipeline with GitOps
+- **Multi-Environment Promotion**: Automated dev → staging → prod pipeline
 - **Secret Manager**: Secure credential management
 - **Cloud Monitoring**: Metrics, logging, and alerting
 - **ArgoCD**: GitOps continuous deployment
@@ -149,7 +150,12 @@ gcp-devops-iac/
 │   ├── grafana/            # Grafana dashboards
 │   └── apps/               # Application deployments
 ├── cloudbuild/
-│   └── cloudbuild.yaml     # CI/CD pipeline config
+│   ├── cloudbuild.yaml          # CI/CD pipeline config
+│   ├── cloudbuild-promote.yaml  # Multi-env promotion
+│   └── triggers/                # Trigger configurations
+├── scripts/
+│   ├── smoke-test.sh            # Automated smoke tests
+│   └── rollback.sh              # Emergency rollback
 └── docs/
     └── architecture.md
 ```

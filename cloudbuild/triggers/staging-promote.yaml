@@ -1,0 +1,26 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Cloud Build Trigger: Promote to Staging
+#
+# Trigger: Called by dev deployment after successful tests
+# Action: Deploy to staging environment
+#
+name: promote-to-staging
+description: Promote to staging environment (triggered by dev success)
+
+# Manual/API trigger only - no automatic git trigger
+triggerTemplate:
+  projectId: ${PROJECT_ID}
+  branchName: main
+
+filename: cloudbuild/cloudbuild-promote.yaml
+
+substitutions:
+  _ENV: staging
+
+# Requires the image tag from dev deployment
+# Passed via: --substitutions=_IMAGE_TAG=xxx
+
+tags:
+  - deploy
+  - staging
+  - promotion
