@@ -1,0 +1,181 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Terraform Validation Pipeline
+# Runs: fmt check, validate, tflint, tfsec, checkov, plan
+
+steps:
+  # Step 1: Terraform Format Check
+  - name: 'hashicorp/terraform:1.6'
+    id: 'tf-fmt'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "=========================================="
+        echo "Step 1: Terraform Format Check"
+        echo "=========================================="
+        terraform fmt -check -recursive -diff terraform/
+        if [ $? -ne 0 ]; then
+          echo "ERROR: Terraform files are not formatted correctly"
+          echo "Run 'terraform fmt -recursive terraform/' to fix"
+          exit 1
+        fi
+        echo "SUCCESS: All Terraform files are properly formatted"
+
+  # Step 2: Terraform Init
+  - name: 'hashicorp/terraform:1.6'
+    id: 'tf-init'
+    entrypoint: 'sh'
+    dir: 'terraform/environments/${_ENVIRONMENT}'
+    args:
+      - '-c'
+      - |
+        echo "=========================================="
+        echo "Step 2: Terraform Init"
+        echo "=========================================="
+        terraform init -backend=false
+    waitFor: ['tf-fmt']
+
+  # Step 3: Terraform Validate
+  - name: 'hashicorp/terraform:1.6'
+    id: 'tf-validate'
+    entrypoint: 'sh'
+    dir: 'terraform/environments/${_ENVIRONMENT}'
+    args:
+      - '-c'
+      - |
+        echo "=========================================="
+        echo "Step 3: Terraform Validate"
+        echo "=========================================="
+        terraform validate
+        if [ $? -ne 0 ]; then
+          echo "ERROR: Terraform validation failed"
+          exit 1
+        fi
+        echo "SUCCESS: Terraform configuration is valid"
+    waitFor: ['tf-init']
+
+  # Step 4: TFLint - Terraform Linter
+  - name: 'ghcr.io/terraform-linters/tflint:v0.50.0'
+    id: 'tflint'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "=========================================="
+        echo "Step 4: TFLint - Best Practices Check"
+        echo "=========================================="
+        tflint --init --config=.tflint.hcl
+        tflint --recursive --config=.tflint.hcl --format=compact terraform/
+        if [ $? -ne 0 ]; then
+          echo "WARNING: TFLint found issues (non-blocking)"
+        fi
+        echo "TFLint check completed"
+    waitFor: ['tf-fmt']
+
+  # Step 5: TFSec - Security Scanner
+  - name: 'aquasec/tfsec:latest'
+    id: 'tfsec'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "=========================================="
+        echo "Step 5: TFSec - Security Scanning"
+        echo "=========================================="
+        tfsec terraform/ --format=compact --soft-fail
+        TFSEC_EXIT=$?
+        if [ $TFSEC_EXIT -ne 0 ]; then
+          echo ""
+          echo "WARNING: TFSec found security issues"
+          echo "Review the findings above and fix HIGH/CRITICAL issues"
+        fi
+        echo ""
+        echo "TFSec scan completed"
+    waitFor: ['tf-fmt']
+
+  # Step 6: Checkov - Policy as Code
+  - name: 'bridgecrew/checkov:latest'
+    id: 'checkov'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "=========================================="
+        echo "Step 6: Checkov - Policy Compliance"
+        echo "=========================================="
+        checkov -d terraform/ \
+          --framework terraform \
+          --compact \
+          --soft-fail \
+          --skip-check CKV_GCP_12,CKV_GCP_24
+        echo ""
+        echo "Checkov scan completed"
+    waitFor: ['tf-fmt']
+
+  # Step 7: Terraform Plan
+  - name: 'hashicorp/terraform:1.6'
+    id: 'tf-plan'
+    entrypoint: 'sh'
+    dir: 'terraform/environments/${_ENVIRONMENT}'
+    secretEnv: ['TF_VAR_project_id']
+    args:
+      - '-c'
+      - |
+        echo "=========================================="
+        echo "Step 7: Terraform Plan"
+        echo "=========================================="
+        terraform plan -out=tfplan -input=false \
+          -var="project_id=$$TF_VAR_project_id" \
+          2>&1 | tee plan_output.txt
+
+        echo ""
+        echo "=========================================="
+        echo "Plan Summary"
+        echo "=========================================="
+        grep -E "^(Plan:|No changes)" plan_output.txt || true
+    waitFor: ['tf-validate', 'tflint', 'tfsec', 'checkov']
+
+  # Step 8: Cost Estimation (Infracost)
+  - name: 'infracost/infracost:latest'
+    id: 'infracost'
+    entrypoint: 'sh'
+    secretEnv: ['INFRACOST_API_KEY']
+    args:
+      - '-c'
+      - |
+        echo "=========================================="
+        echo "Step 8: Cost Estimation"
+        echo "=========================================="
+        if [ -z "$$INFRACOST_API_KEY" ]; then
+          echo "INFRACOST_API_KEY not set, skipping cost estimation"
+          exit 0
+        fi
+        infracost breakdown --path terraform/environments/${_ENVIRONMENT} \
+          --format table \
+          --show-skipped
+    waitFor: ['tf-plan']
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_MEDIUM'
+
+timeout: '1800s'
+
+substitutions:
+  _ENVIRONMENT: 'dev'
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/${PROJECT_ID}/secrets/terraform-project-id/versions/latest
+      env: 'TF_VAR_project_id'
+    - versionName: projects/${PROJECT_ID}/secrets/infracost-api-key/versions/latest
+      env: 'INFRACOST_API_KEY'
+
+# Trigger configuration (create via gcloud or Terraform)
+# gcloud builds triggers create github \
+#   --name="terraform-validate" \
+#   --repo-name="gcp-devops-iac" \
+#   --repo-owner="bimakw" \
+#   --branch-pattern="^feature/.*$" \
+#   --included-files="terraform/**" \
+#   --build-config="cloudbuild/cloudbuild-terraform.yaml"

@@ -1,0 +1,38 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Checkov Configuration
+
+# Only scan Terraform files
+framework:
+  - terraform
+
+# Directories to scan
+directory:
+  - terraform/
+
+# Skip specific checks (with justification)
+skip-check:
+  # CKV_GCP_12: Enable VPC Flow Logs - may increase costs significantly
+  - CKV_GCP_12
+  # CKV_GCP_24: Ensure PodSecurityPolicy is defined - PSP deprecated in K8s 1.25+
+  - CKV_GCP_24
+  # CKV_GCP_65: GKE cluster should have shielded nodes - optional for dev environments
+  # - CKV_GCP_65
+
+# Compact output format
+compact: true
+
+# Soft fail - don't block on failures (for CI/CD tuning)
+soft-fail: true
+
+# Output format
+output:
+  - cli
+
+# Download external modules
+download-external-modules: true
+
+# Evaluation timeout
+evaluate-variables: true
+
+# Summary position
+summary-position: bottom
