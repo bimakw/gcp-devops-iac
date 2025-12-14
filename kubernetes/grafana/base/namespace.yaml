@@ -1,0 +1,9 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Grafana uses the same monitoring namespace as Prometheus
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/component: observability

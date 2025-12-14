@@ -1,0 +1,306 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# SLO Recording Rules - Pre-computed metrics for efficient SLO calculations
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: rules
+data:
+  slo-recording-rules.yaml: |
+    groups:
+      - name: slo-recording-rules
+        interval: 30s
+        rules:
+          # ============================================
+          # HTTP Request SLIs
+          # ============================================
+
+          # Total requests per service (rate over 5m window)
+          - record: sli:http_requests:rate5m
+            expr: |
+              sum by (service, namespace) (
+                rate(http_requests_total[5m])
+              )
+
+          # Successful requests (non-5xx)
+          - record: sli:http_requests_success:rate5m
+            expr: |
+              sum by (service, namespace) (
+                rate(http_requests_total{status_code!~"5.."}[5m])
+              )
+
+          # Error requests (5xx only)
+          - record: sli:http_requests_errors:rate5m
+            expr: |
+              sum by (service, namespace) (
+                rate(http_requests_total{status_code=~"5.."}[5m])
+              )
+
+          # ============================================
+          # Availability SLI (Error Rate)
+          # ============================================
+
+          # Availability ratio (success / total)
+          - record: sli:availability:ratio5m
+            expr: |
+              sli:http_requests_success:rate5m
+              /
+              sli:http_requests:rate5m
+
+          # Error ratio (errors / total)
+          - record: sli:error:ratio5m
+            expr: |
+              sli:http_requests_errors:rate5m
+              /
+              sli:http_requests:rate5m
+
+          # ============================================
+          # Latency SLIs
+          # ============================================
+
+          # P50 latency
+          - record: sli:latency:p50_5m
+            expr: |
+              histogram_quantile(0.50,
+                sum by (service, namespace, le) (
+                  rate(http_request_duration_seconds_bucket[5m])
+                )
+              )
+
+          # P90 latency
+          - record: sli:latency:p90_5m
+            expr: |
+              histogram_quantile(0.90,
+                sum by (service, namespace, le) (
+                  rate(http_request_duration_seconds_bucket[5m])
+                )
+              )
+
+          # P99 latency
+          - record: sli:latency:p99_5m
+            expr: |
+              histogram_quantile(0.99,
+                sum by (service, namespace, le) (
+                  rate(http_request_duration_seconds_bucket[5m])
+                )
+              )
+
+          # Requests under latency threshold (500ms)
+          - record: sli:latency_good:rate5m
+            expr: |
+              sum by (service, namespace) (
+                rate(http_request_duration_seconds_bucket{le="0.5"}[5m])
+              )
+
+          # Latency SLI ratio (requests under threshold / total)
+          - record: sli:latency:ratio5m
+            expr: |
+              sli:latency_good:rate5m
+              /
+              sli:http_requests:rate5m
+
+          # ============================================
+          # Multi-Window Error Budget Burn Rate
+          # ============================================
+
+          # 1-hour error rate
+          - record: sli:error:ratio1h
+            expr: |
+              sum by (service, namespace) (
+                increase(http_requests_total{status_code=~"5.."}[1h])
+              )
+              /
+              sum by (service, namespace) (
+                increase(http_requests_total[1h])
+              )
+
+          # 6-hour error rate
+          - record: sli:error:ratio6h
+            expr: |
+              sum by (service, namespace) (
+                increase(http_requests_total{status_code=~"5.."}[6h])
+              )
+              /
+              sum by (service, namespace) (
+                increase(http_requests_total[6h])
+              )
+
+          # 1-day error rate
+          - record: sli:error:ratio1d
+            expr: |
+              sum by (service, namespace) (
+                increase(http_requests_total{status_code=~"5.."}[1d])
+              )
+              /
+              sum by (service, namespace) (
+                increase(http_requests_total[1d])
+              )
+
+          # 3-day error rate (for burn rate calculation)
+          - record: sli:error:ratio3d
+            expr: |
+              sum by (service, namespace) (
+                increase(http_requests_total{status_code=~"5.."}[3d])
+              )
+              /
+              sum by (service, namespace) (
+                increase(http_requests_total[3d])
+              )
+
+  slo-alerting-rules.yaml: |
+    groups:
+      - name: slo-alerts
+        rules:
+          # ============================================
+          # Multi-Window, Multi-Burn-Rate Alerts
+          # Based on Google SRE Workbook recommendations
+          # ============================================
+
+          # SLO: 99.9% availability (0.1% error budget)
+          # This means 43.8 minutes of downtime per month
+
+          # Page: 2% budget consumed in 1 hour (14.4x burn rate)
+          # Alert within 1 hour if burning through monthly budget in ~3 days
+          - alert: SLOErrorBudgetBurnHigh
+            expr: |
+              (
+                sli:error:ratio1h > (14.4 * 0.001)
+                and
+                sli:error:ratio5m > (14.4 * 0.001)
+              )
+            for: 2m
+            labels:
+              severity: critical
+              slo: availability
+            annotations:
+              summary: "High error budget burn rate for {{ $labels.service }}"
+              description: |
+                Service {{ $labels.service }} in {{ $labels.namespace }} is burning error budget at 14.4x rate.
+                Current 1h error rate: {{ $value | humanizePercentage }}
+                At this rate, the entire monthly error budget will be exhausted in ~3 days.
+              runbook_url: "https://example.com/runbooks/slo-error-budget"
+
+          # Page: 5% budget consumed in 6 hours (6x burn rate)
+          # Alert if burning through monthly budget in ~5 days
+          - alert: SLOErrorBudgetBurnMedium
+            expr: |
+              (
+                sli:error:ratio6h > (6 * 0.001)
+                and
+                sli:error:ratio30m > (6 * 0.001)
+              )
+            for: 5m
+            labels:
+              severity: warning
+              slo: availability
+            annotations:
+              summary: "Medium error budget burn rate for {{ $labels.service }}"
+              description: |
+                Service {{ $labels.service }} in {{ $labels.namespace }} is burning error budget at 6x rate.
+                Current 6h error rate: {{ $value | humanizePercentage }}
+              runbook_url: "https://example.com/runbooks/slo-error-budget"
+
+          # Ticket: 10% budget consumed in 3 days (1x burn rate)
+          # Alert for slow but steady budget consumption
+          - alert: SLOErrorBudgetBurnSlow
+            expr: |
+              (
+                sli:error:ratio3d > (1 * 0.001)
+                and
+                sli:error:ratio6h > (1 * 0.001)
+              )
+            for: 30m
+            labels:
+              severity: info
+              slo: availability
+            annotations:
+              summary: "Slow error budget burn for {{ $labels.service }}"
+              description: |
+                Service {{ $labels.service }} in {{ $labels.namespace }} is slowly burning error budget.
+                Current 3d error rate: {{ $value | humanizePercentage }}
+              runbook_url: "https://example.com/runbooks/slo-error-budget"
+
+          # ============================================
+          # Latency SLO Alerts
+          # ============================================
+
+          # SLO: 99% of requests under 500ms
+          - alert: SLOLatencyHigh
+            expr: |
+              sli:latency:p99_5m > 0.5
+            for: 5m
+            labels:
+              severity: warning
+              slo: latency
+            annotations:
+              summary: "P99 latency exceeds SLO for {{ $labels.service }}"
+              description: |
+                Service {{ $labels.service }} P99 latency is {{ $value | humanizeDuration }}.
+                SLO target: 500ms
+              runbook_url: "https://example.com/runbooks/slo-latency"
+
+          - alert: SLOLatencyCritical
+            expr: |
+              sli:latency:p99_5m > 1.0
+            for: 2m
+            labels:
+              severity: critical
+              slo: latency
+            annotations:
+              summary: "P99 latency critically high for {{ $labels.service }}"
+              description: |
+                Service {{ $labels.service }} P99 latency is {{ $value | humanizeDuration }}.
+                This is more than 2x the SLO target of 500ms.
+              runbook_url: "https://example.com/runbooks/slo-latency"
+
+          # ============================================
+          # Error Budget Exhaustion Warning
+          # ============================================
+
+          - alert: SLOErrorBudgetExhausted
+            expr: |
+              (
+                1 - sli:error:ratio30d
+              ) < 0.999
+            for: 5m
+            labels:
+              severity: critical
+              slo: availability
+            annotations:
+              summary: "Error budget exhausted for {{ $labels.service }}"
+              description: |
+                Service {{ $labels.service }} has exhausted its monthly error budget.
+                30-day availability: {{ $value | humanizePercentage }}
+                SLO target: 99.9%
+              runbook_url: "https://example.com/runbooks/slo-budget-exhausted"
+
+          # ============================================
+          # Service Health Alerts
+          # ============================================
+
+          - alert: ServiceDown
+            expr: |
+              up{job=~"kubernetes-pods|kubernetes-service-endpoints"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Service {{ $labels.kubernetes_service }} is down"
+              description: |
+                Service {{ $labels.kubernetes_service }} in namespace {{ $labels.kubernetes_namespace }}
+                has been unreachable for more than 1 minute.
+
+          - alert: HighErrorRate
+            expr: |
+              sli:error:ratio5m > 0.05
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High error rate for {{ $labels.service }}"
+              description: |
+                Service {{ $labels.service }} has an error rate of {{ $value | humanizePercentage }}.
+                This exceeds the 5% threshold.

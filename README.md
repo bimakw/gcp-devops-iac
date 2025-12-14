@@ -191,6 +191,12 @@ gcp-devops-iac/
 - Grafana visualization
 - Alerting policies with PagerDuty/Slack integration
 - Distributed tracing (optional)
+- **SLO/SLI Monitoring**:
+  - Multi-window burn rate alerts
+  - Recording rules for efficient queries
+  - SLO Overview dashboard
+  - Service Health dashboard
+  - Error budget tracking
 
 ## Cost Optimization
 
