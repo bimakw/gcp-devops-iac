@@ -148,6 +148,7 @@ gcp-devops-iac/
 │   └── outputs.tf
 ├── kubernetes/
 │   ├── argocd/             # ArgoCD manifests
+│   ├── external-secrets/   # External Secrets Operator
 │   ├── gatekeeper/         # OPA Gatekeeper policies
 │   ├── sealed-secrets/     # Sealed Secrets controller
 │   ├── prometheus/         # Prometheus stack
@@ -193,6 +194,10 @@ gcp-devops-iac/
   - Encrypt secrets for Git storage
   - Automatic decryption in cluster
   - ArgoCD integration
+- **External Secrets Operator**: Sync secrets from Secret Manager
+  - Workload Identity authentication
+  - Automatic secret refresh
+  - Template transformation
 
 ## Monitoring & Observability
 
