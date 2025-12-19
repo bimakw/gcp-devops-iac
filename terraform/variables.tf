@@ -240,3 +240,64 @@ variable "redis_enable_tls" {
   type        = bool
   default     = true
 }
+
+# Cloud Armor (WAF) Configuration
+variable "create_cloud_armor" {
+  description = "Create Cloud Armor security policy"
+  type        = bool
+  default     = false
+}
+
+variable "cloud_armor_enable_owasp" {
+  description = "Enable OWASP ModSecurity rules"
+  type        = bool
+  default     = true
+}
+
+variable "cloud_armor_owasp_action" {
+  description = "Action for OWASP rules (deny(403) or allow)"
+  type        = string
+  default     = "deny(403)"
+}
+
+variable "cloud_armor_enable_rate_limiting" {
+  description = "Enable rate limiting"
+  type        = bool
+  default     = true
+}
+
+variable "cloud_armor_rate_limit_requests" {
+  description = "Rate limit requests per interval"
+  type        = number
+  default     = 100
+}
+
+variable "cloud_armor_rate_limit_interval" {
+  description = "Rate limit interval in seconds"
+  type        = number
+  default     = 60
+}
+
+variable "cloud_armor_blocked_countries" {
+  description = "List of country codes to block"
+  type        = list(string)
+  default     = []
+}
+
+variable "cloud_armor_allowlist_ips" {
+  description = "List of IP ranges to always allow"
+  type        = list(string)
+  default     = []
+}
+
+variable "cloud_armor_blocklist_ips" {
+  description = "List of IP ranges to always block"
+  type        = list(string)
+  default     = []
+}
+
+variable "cloud_armor_enable_adaptive_protection" {
+  description = "Enable adaptive DDoS protection (requires Cloud Armor Plus)"
+  type        = bool
+  default     = false
+}

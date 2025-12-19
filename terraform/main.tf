@@ -235,3 +235,24 @@ module "memorystore" {
 
   depends_on = [module.networking, google_project_service.apis]
 }
+
+# Cloud Armor (WAF) Module
+module "cloud_armor" {
+  source = "./modules/cloud-armor"
+  count  = var.create_cloud_armor ? 1 : 0
+
+  project_id                   = var.project_id
+  project_name                 = var.project_name
+  environment                  = var.environment
+  enable_owasp_rules           = var.cloud_armor_enable_owasp
+  owasp_action                 = var.cloud_armor_owasp_action
+  enable_rate_limiting         = var.cloud_armor_enable_rate_limiting
+  rate_limit_requests_per_interval = var.cloud_armor_rate_limit_requests
+  rate_limit_interval_sec      = var.cloud_armor_rate_limit_interval
+  blocked_countries            = var.cloud_armor_blocked_countries
+  allowlist_ips                = var.cloud_armor_allowlist_ips
+  blocklist_ips                = var.cloud_armor_blocklist_ips
+  enable_adaptive_protection   = var.cloud_armor_enable_adaptive_protection
+
+  depends_on = [google_project_service.apis]
+}

@@ -106,6 +106,22 @@ output "redis_auth_secret_id" {
   value       = var.create_redis ? module.memorystore[0].auth_secret_id : null
 }
 
+# Cloud Armor Outputs
+output "cloud_armor_policy_name" {
+  description = "Cloud Armor security policy name"
+  value       = var.create_cloud_armor ? module.cloud_armor[0].policy_name : null
+}
+
+output "cloud_armor_policy_self_link" {
+  description = "Cloud Armor policy self link"
+  value       = var.create_cloud_armor ? module.cloud_armor[0].policy_self_link : null
+}
+
+output "cloud_armor_backend_config_yaml" {
+  description = "BackendConfig YAML for GKE"
+  value       = var.create_cloud_armor ? module.cloud_armor[0].backend_config_yaml : null
+}
+
 # Summary
 output "summary" {
   description = "Infrastructure Summary"

@@ -50,6 +50,7 @@ Production-ready GCP infrastructure using Terraform with full DevOps pipeline.
 - **GKE Cluster**: Managed Kubernetes with autoscaling
 - **Cloud SQL**: Managed PostgreSQL with high availability
 - **Memorystore**: Managed Redis for caching with HA support
+- **Cloud Armor**: WAF with OWASP rules & DDoS protection
 - **Artifact Registry**: Private Docker image repository
 - **Cloud Build**: CI/CD pipeline with GitOps
 - **Multi-Environment Promotion**: Automated dev → staging → prod pipeline
@@ -133,6 +134,7 @@ gcp-devops-iac/
 │   │   ├── gke/             # GKE Cluster, Node Pools
 │   │   ├── cloudsql/        # Cloud SQL PostgreSQL
 │   │   ├── memorystore/     # Redis Cache (Memorystore)
+│   │   ├── cloud-armor/     # WAF & DDoS Protection
 │   │   ├── artifact-registry/ # Container Registry
 │   │   ├── cloud-build/     # CI/CD Triggers
 │   │   ├── monitoring/      # Monitoring, Logging, Alerting
