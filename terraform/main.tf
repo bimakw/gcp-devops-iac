@@ -53,6 +53,7 @@ resource "google_project_service" "apis" {
     "servicenetworking.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "iam.googleapis.com",
+    "redis.googleapis.com",
   ])
 
   project            = var.project_id
@@ -212,4 +213,25 @@ module "secrets" {
   gke_service_account_name  = "default"
 
   depends_on = [google_project_service.apis]
+}
+
+# Memorystore (Redis) Module
+module "memorystore" {
+  source = "./modules/memorystore"
+  count  = var.create_redis ? 1 : 0
+
+  project_id             = var.project_id
+  project_name           = var.project_name
+  region                 = var.region
+  environment            = var.environment
+  vpc_id                 = module.networking.vpc_id
+  private_vpc_connection = module.networking.private_vpc_connection
+  tier                   = var.redis_tier
+  memory_size_gb         = var.redis_memory_size_gb
+  redis_version          = var.redis_version
+  auth_enabled           = var.redis_auth_enabled
+  enable_tls             = var.redis_enable_tls
+  secret_accessors       = [google_service_account.gke_nodes.email]
+
+  depends_on = [module.networking, google_project_service.apis]
 }
