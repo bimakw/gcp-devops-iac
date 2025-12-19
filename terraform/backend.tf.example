@@ -1,0 +1,39 @@
+/*
+ * Copyright (c) 2024 Bima Kharisma Wicaksana
+ * GitHub: https://github.com/bimakw
+ *
+ * Terraform Backend Configuration Example
+ * Copy this file to backend.tf and customize for your environment
+ */
+
+terraform {
+  backend "gcs" {
+    # GCS bucket for state storage
+    # Bucket should be created using scripts/bootstrap-backend.sh
+    bucket = "YOUR_PROJECT_ID-terraform-state"
+
+    # Prefix for state file
+    # Use different prefixes for each environment
+    prefix = "terraform/state/dev"
+
+    # Optional: encryption key for state
+    # encryption_key = "your-encryption-key"
+  }
+}
+
+/*
+ * Environment-specific prefixes:
+ *   - dev:     terraform/state/dev
+ *   - staging: terraform/state/staging
+ *   - prod:    terraform/state/prod
+ *
+ * State Locking:
+ *   GCS backend automatically handles state locking using
+ *   object generation numbers. No additional configuration needed.
+ *
+ * State Encryption:
+ *   By default, GCS encrypts data at rest using Google-managed keys.
+ *   For customer-managed encryption keys (CMEK), configure:
+ *   - encryption_key parameter, or
+ *   - Set GOOGLE_ENCRYPTION_KEY environment variable
+ */

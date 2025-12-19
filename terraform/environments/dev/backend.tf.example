@@ -1,0 +1,15 @@
+/*
+ * Copyright (c) 2024 Bima Kharisma Wicaksana
+ * Development Environment - Backend Configuration
+ *
+ * To use this file:
+ * 1. Run: ./scripts/bootstrap-backend.sh -p YOUR_PROJECT_ID -e dev
+ * 2. Or copy this file to backend.tf and replace YOUR_PROJECT_ID
+ */
+
+terraform {
+  backend "gcs" {
+    bucket = "YOUR_PROJECT_ID-terraform-state"
+    prefix = "terraform/state/dev"
+  }
+}

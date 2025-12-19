@@ -24,11 +24,9 @@ terraform {
     }
   }
 
-  # Backend configuration - uncomment and configure for remote state
-  # backend "gcs" {
-  #   bucket = "your-terraform-state-bucket"
-  #   prefix = "terraform/state"
-  # }
+  # Backend configuration
+  # See docs/remote-state.md for setup instructions
+  # Run: ./scripts/bootstrap-backend.sh -p YOUR_PROJECT_ID -e ENVIRONMENT
 }
 
 provider "google" {
