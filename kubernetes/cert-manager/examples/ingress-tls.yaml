@@ -1,0 +1,68 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Example: Ingress with automatic TLS certificate
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  namespace: default
+  annotations:
+    # Request certificate from Let's Encrypt
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+
+    # For nginx ingress
+    kubernetes.io/ingress.class: nginx
+
+    # Optional: Force HTTPS redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+    # Optional: Enable HSTS
+    nginx.ingress.kubernetes.io/hsts: "true"
+    nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
+spec:
+  tls:
+    - hosts:
+        - app.example.com
+      secretName: app-example-com-tls  # cert-manager creates this
+  rules:
+    - host: app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app-service
+                port:
+                  number: 80
+---
+# Example: GKE Ingress with managed certificate
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress-gce
+  namespace: default
+  annotations:
+    # Use GKE Ingress
+    kubernetes.io/ingress.class: gce
+
+    # Request certificate from Let's Encrypt
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+
+    # Static IP (create with: gcloud compute addresses create app-ip --global)
+    kubernetes.io/ingress.global-static-ip-name: app-ip
+spec:
+  tls:
+    - hosts:
+        - app.example.com
+      secretName: app-example-com-tls
+  rules:
+    - host: app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app-service
+                port:
+                  number: 80

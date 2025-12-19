@@ -1,0 +1,46 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Let's Encrypt Staging ClusterIssuer (for testing)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    # Let's Encrypt staging server (use for testing)
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+
+    # Email for certificate notifications
+    email: your-email@example.com
+
+    # Secret to store ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+
+    solvers:
+      # HTTP01 challenge (simplest, works with any domain)
+      - http01:
+          ingress:
+            class: nginx  # or gce for GKE Ingress
+
+      # DNS01 challenge with Cloud DNS (for wildcard certs)
+      # Uncomment if using Cloud DNS
+      # - dns01:
+      #     cloudDNS:
+      #       project: YOUR_PROJECT_ID
+      #       # Workload Identity - no credentials needed
+---
+# HTTP01 only ClusterIssuer (simpler setup)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging-http01
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: your-email@example.com
+    privateKeySecretRef:
+      name: letsencrypt-staging-http01-account-key
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
