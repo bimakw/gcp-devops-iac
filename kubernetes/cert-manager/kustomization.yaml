@@ -1,0 +1,60 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Cert-Manager Kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: cert-manager
+
+resources:
+  - namespace.yaml
+
+# Install cert-manager via Helm
+helmCharts:
+  - name: cert-manager
+    repo: https://charts.jetstack.io
+    version: v1.14.2
+    releaseName: cert-manager
+    namespace: cert-manager
+    valuesInline:
+      installCRDs: true
+
+      # Enable Prometheus metrics
+      prometheus:
+        enabled: true
+        servicemonitor:
+          enabled: false  # Enable if Prometheus Operator is installed
+
+      # Workload Identity for Cloud DNS (DNS01 challenge)
+      serviceAccount:
+        create: true
+        name: cert-manager
+        annotations:
+          # Replace with your project ID
+          iam.gke.io/gcp-service-account: cert-manager@YOUR_PROJECT_ID.iam.gserviceaccount.com
+
+      # Resource limits
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+
+      webhook:
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+
+      cainjector:
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi

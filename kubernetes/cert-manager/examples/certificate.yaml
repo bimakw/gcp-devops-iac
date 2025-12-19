@@ -1,0 +1,77 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Example: Request a certificate for your application
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: app-example-com
+  namespace: default
+spec:
+  # Secret name where certificate will be stored
+  secretName: app-example-com-tls
+
+  # Certificate duration (default 90 days)
+  duration: 2160h  # 90 days
+
+  # Renew before expiry
+  renewBefore: 360h  # 15 days
+
+  # Subject information (optional)
+  subject:
+    organizations:
+      - Your Organization
+
+  # Private key configuration
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+
+  # Usages
+  usages:
+    - server auth
+    - client auth
+
+  # Domain names
+  dnsNames:
+    - app.example.com
+    - www.app.example.com
+
+  # Reference to ClusterIssuer
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# Example: Wildcard certificate (requires DNS01 challenge)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-example-com
+  namespace: default
+spec:
+  secretName: wildcard-example-com-tls
+  duration: 2160h
+  renewBefore: 360h
+  dnsNames:
+    - "*.example.com"
+    - "example.com"
+  issuerRef:
+    name: letsencrypt-prod-dns01  # Must use DNS01 issuer
+    kind: ClusterIssuer
+---
+# Example: Self-signed certificate (for internal services)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: internal-service
+  namespace: default
+spec:
+  secretName: internal-service-tls
+  duration: 8760h  # 1 year
+  renewBefore: 720h  # 30 days
+  dnsNames:
+    - internal-service.default.svc.cluster.local
+    - internal-service
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer

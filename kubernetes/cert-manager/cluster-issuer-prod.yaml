@@ -1,0 +1,55 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Let's Encrypt Production ClusterIssuer
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    # Let's Encrypt production server
+    server: https://acme-v02.api.letsencrypt.org/directory
+
+    # Email for certificate notifications (expiry warnings)
+    email: your-email@example.com
+
+    # Secret to store ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+
+    solvers:
+      # HTTP01 challenge - works with any domain
+      - http01:
+          ingress:
+            class: nginx  # Change to 'gce' for GKE Ingress
+
+      # DNS01 challenge with Cloud DNS (for wildcard certificates)
+      # - dns01:
+      #     cloudDNS:
+      #       project: YOUR_PROJECT_ID
+---
+# DNS01 ClusterIssuer for wildcard certificates
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod-dns01
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: your-email@example.com
+    privateKeySecretRef:
+      name: letsencrypt-prod-dns01-account-key
+    solvers:
+      - dns01:
+          cloudDNS:
+            # GCP Project ID containing Cloud DNS zone
+            project: YOUR_PROJECT_ID
+            # Optional: specific DNS zone
+            # hostedZoneName: your-zone-name
+---
+# Self-signed ClusterIssuer (for internal services)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+spec:
+  selfSigned: {}

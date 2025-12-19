@@ -148,6 +148,7 @@ gcp-devops-iac/
 │   └── outputs.tf
 ├── kubernetes/
 │   ├── argocd/             # ArgoCD manifests
+│   ├── cert-manager/       # TLS Certificate Management
 │   ├── external-secrets/   # External Secrets Operator
 │   ├── gatekeeper/         # OPA Gatekeeper policies
 │   ├── sealed-secrets/     # Sealed Secrets controller
@@ -198,6 +199,10 @@ gcp-devops-iac/
   - Workload Identity authentication
   - Automatic secret refresh
   - Template transformation
+- **Cert-Manager**: Automated TLS certificate management
+  - Let's Encrypt integration (staging & production)
+  - HTTP01 and DNS01 challenges
+  - Wildcard certificate support
 
 ## Monitoring & Observability
 
