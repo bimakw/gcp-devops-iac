@@ -139,7 +139,8 @@ gcp-devops-iac/
 │   │   ├── cloud-build/     # CI/CD Triggers
 │   │   ├── monitoring/      # Monitoring, Logging, Alerting
 │   │   ├── secrets/         # Secret Manager
-│   │   └── velero-storage/  # Backup Storage
+│   │   ├── velero-storage/  # Backup Storage
+│   │   └── cost-management/ # Budget & Cost Optimization
 │   ├── environments/
 │   │   ├── dev/            # Development environment
 │   │   ├── staging/        # Staging environment
@@ -157,6 +158,7 @@ gcp-devops-iac/
 │   ├── prometheus/         # Prometheus stack
 │   ├── grafana/            # Grafana dashboards
 │   ├── velero/             # Backup & Disaster Recovery
+│   ├── cost-monitoring/    # Kubecost & Grafana Dashboards
 │   └── apps/               # Application deployments
 ├── cloudbuild/
 │   ├── cloudbuild.yaml          # CI/CD pipeline config
@@ -231,6 +233,13 @@ gcp-devops-iac/
 
 ## Cost Optimization
 
+- **Budget Alerts**: Proactive notifications at configurable thresholds
+- **Cost Allocation**: Resource labeling for accurate cost attribution
+- **Anomaly Detection**: Automatic detection of unusual spending patterns
+- **Kubecost Integration**: Kubernetes-native cost monitoring with GCP integration
+- **Grafana Dashboards**: Visualization of daily costs, service breakdown, and trends
+- **GCP Recommender**: VM right-sizing, idle resources, CUD recommendations
+- **Cost Report Script**: CLI tool for quick cost analysis
 - Preemptible/Spot VMs for non-critical workloads
 - Cluster autoscaling
 - Resource quotas and limits

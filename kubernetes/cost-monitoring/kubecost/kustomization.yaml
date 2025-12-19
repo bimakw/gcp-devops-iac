@@ -1,0 +1,71 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Kubecost Deployment via Helm
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+helmCharts:
+  - name: cost-analyzer
+    repo: https://kubecost.github.io/cost-analyzer/
+    version: "2.1.0"
+    releaseName: kubecost
+    namespace: cost-monitoring
+    valuesInline:
+      # Global settings
+      global:
+        prometheus:
+          enabled: false  # Use existing Prometheus
+          fqdn: http://prometheus-operated.monitoring.svc:9090
+
+      # Kubecost settings
+      kubecostModel:
+        etlBucketConfigSecret: kubecost-gcp-bucket
+
+      # GCP integration
+      kubecostProductConfigs:
+        cloudIntegrationSecret: kubecost-gcp-integration
+        gcpProjectId: "${PROJECT_ID}"
+
+      # Service account for GCP
+      serviceAccount:
+        create: true
+        annotations:
+          iam.gke.io/gcp-service-account: kubecost@${PROJECT_ID}.iam.gserviceaccount.com
+
+      # Resource limits
+      kubecostDeployment:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+
+      # Frontend
+      kubecostFrontend:
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+
+      # Disable built-in Prometheus
+      prometheus:
+        server:
+          enabled: false
+        alertmanager:
+          enabled: false
+        nodeExporter:
+          enabled: false
+        pushgateway:
+          enabled: false
+
+      # Network policy
+      networkPolicy:
+        enabled: true
+
+resources:
+  - gcp-integration-secret.yaml
+  - network-policy.yaml
