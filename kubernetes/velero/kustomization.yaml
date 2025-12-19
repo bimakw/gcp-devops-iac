@@ -1,0 +1,72 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Velero Kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: velero
+
+resources:
+  - namespace.yaml
+
+# Install Velero via Helm
+helmCharts:
+  - name: velero
+    repo: https://vmware-tanzu.github.io/helm-charts
+    version: 5.2.2
+    releaseName: velero
+    namespace: velero
+    valuesInline:
+      # GCP configuration
+      configuration:
+        backupStorageLocation:
+          - name: default
+            provider: gcp
+            bucket: YOUR_PROJECT_ID-velero-backups  # Replace
+            config:
+              serviceAccount: velero@YOUR_PROJECT_ID.iam.gserviceaccount.com
+
+        volumeSnapshotLocation:
+          - name: default
+            provider: gcp
+            config:
+              project: YOUR_PROJECT_ID  # Replace
+              snapshotLocation: asia-southeast1  # Replace with your region
+
+      # Workload Identity
+      serviceAccount:
+        server:
+          create: true
+          name: velero
+          annotations:
+            iam.gke.io/gcp-service-account: velero@YOUR_PROJECT_ID.iam.gserviceaccount.com
+
+      # Use GCP plugin
+      initContainers:
+        - name: velero-plugin-for-gcp
+          image: velero/velero-plugin-for-gcp:v1.9.0
+          volumeMounts:
+            - name: plugins
+              mountPath: /target
+
+      # Resource limits
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+
+      # Deploy node agent for file system backups
+      deployNodeAgent: true
+      nodeAgent:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+      # Schedule default backup
+      schedules: {}

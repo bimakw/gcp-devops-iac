@@ -1,0 +1,9 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Velero Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/component: disaster-recovery

@@ -138,7 +138,8 @@ gcp-devops-iac/
 │   │   ├── artifact-registry/ # Container Registry
 │   │   ├── cloud-build/     # CI/CD Triggers
 │   │   ├── monitoring/      # Monitoring, Logging, Alerting
-│   │   └── secrets/         # Secret Manager
+│   │   ├── secrets/         # Secret Manager
+│   │   └── velero-storage/  # Backup Storage
 │   ├── environments/
 │   │   ├── dev/            # Development environment
 │   │   ├── staging/        # Staging environment
@@ -155,6 +156,7 @@ gcp-devops-iac/
 │   ├── sealed-secrets/     # Sealed Secrets controller
 │   ├── prometheus/         # Prometheus stack
 │   ├── grafana/            # Grafana dashboards
+│   ├── velero/             # Backup & Disaster Recovery
 │   └── apps/               # Application deployments
 ├── cloudbuild/
 │   ├── cloudbuild.yaml          # CI/CD pipeline config
@@ -208,6 +210,10 @@ gcp-devops-iac/
   - mTLS encryption between services
   - Canary deployments and traffic splitting
   - Kiali dashboard and Jaeger tracing
+- **Velero Backup**: Disaster recovery
+  - Scheduled Kubernetes backups
+  - GCS storage with lifecycle policies
+  - Point-in-time restore capability
 
 ## Monitoring & Observability
 

@@ -1,0 +1,85 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Velero Backup Schedules
+---
+# Daily backup of all namespaces
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily-full-backup
+  namespace: velero
+spec:
+  schedule: "0 2 * * *"  # 2 AM UTC daily
+  template:
+    # Backup all namespaces except system ones
+    excludedNamespaces:
+      - kube-system
+      - kube-public
+      - kube-node-lease
+      - velero
+    includedResources:
+      - "*"
+    # Include cluster-scoped resources
+    includeClusterResources: true
+    # Backup volumes
+    snapshotVolumes: true
+    # TTL for backup
+    ttl: 168h  # 7 days
+    # Storage location
+    storageLocation: default
+    # Volume snapshot location
+    volumeSnapshotLocations:
+      - default
+    # Labels for backup
+    metadata:
+      labels:
+        backup-type: daily
+---
+# Weekly backup (longer retention)
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: weekly-backup
+  namespace: velero
+spec:
+  schedule: "0 3 * * 0"  # 3 AM UTC Sunday
+  template:
+    excludedNamespaces:
+      - kube-system
+      - kube-public
+      - kube-node-lease
+      - velero
+    includedResources:
+      - "*"
+    includeClusterResources: true
+    snapshotVolumes: true
+    ttl: 720h  # 30 days
+    storageLocation: default
+    volumeSnapshotLocations:
+      - default
+    metadata:
+      labels:
+        backup-type: weekly
+---
+# Namespace-specific backup (critical apps)
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: critical-apps-backup
+  namespace: velero
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  template:
+    includedNamespaces:
+      - production
+      - default
+    includedResources:
+      - "*"
+    includeClusterResources: false
+    snapshotVolumes: true
+    ttl: 72h  # 3 days
+    storageLocation: default
+    volumeSnapshotLocations:
+      - default
+    metadata:
+      labels:
+        backup-type: critical
