@@ -1,0 +1,87 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Example: VirtualService for traffic management
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-routing
+  namespace: default
+spec:
+  hosts:
+    - "app.example.com"
+  gateways:
+    - istio-system/main-gateway
+  http:
+    # Canary deployment - route 10% to v2
+    - match:
+        - headers:
+            x-canary:
+              exact: "true"
+      route:
+        - destination:
+            host: app-service
+            subset: v2
+          weight: 100
+
+    # Default routing with traffic split
+    - route:
+        - destination:
+            host: app-service
+            subset: v1
+          weight: 90
+        - destination:
+            host: app-service
+            subset: v2
+          weight: 10
+
+      # Retry policy
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: gateway-error,connect-failure,refused-stream
+
+      # Timeout
+      timeout: 30s
+
+      # Fault injection (for testing)
+      # fault:
+      #   delay:
+      #     percentage:
+      #       value: 10
+      #     fixedDelay: 5s
+---
+# DestinationRule for subsets and load balancing
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: app-service
+  namespace: default
+spec:
+  host: app-service
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        h2UpgradePolicy: UPGRADE
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+
+    # Load balancing
+    loadBalancer:
+      simple: ROUND_ROBIN
+      # Alternative: LEAST_CONN, RANDOM, PASSTHROUGH
+
+    # Outlier detection (circuit breaker)
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+
+  subsets:
+    - name: v1
+      labels:
+        version: v1
+    - name: v2
+      labels:
+        version: v2

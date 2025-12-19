@@ -1,0 +1,23 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Mesh-wide mTLS Configuration
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  mtls:
+    # STRICT: Only accept mTLS traffic
+    # PERMISSIVE: Accept both plaintext and mTLS (for migration)
+    # DISABLE: Accept only plaintext
+    mode: STRICT
+---
+# Permissive mode for specific namespace (during migration)
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: permissive-mode
+  namespace: default
+spec:
+  mtls:
+    mode: PERMISSIVE

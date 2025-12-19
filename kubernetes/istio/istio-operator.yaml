@@ -1,0 +1,104 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Istio Operator Configuration
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  name: istio-control-plane
+  namespace: istio-system
+spec:
+  # Istio profile (default, demo, minimal, empty)
+  profile: default
+
+  # Mesh configuration
+  meshConfig:
+    # Access logging
+    accessLogFile: /dev/stdout
+    accessLogFormat: |
+      [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"
+      %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT%
+      %DURATION% "%REQ(X-FORWARDED-FOR)%" "%REQ(USER-AGENT)%"
+      "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%"
+
+    # Enable tracing
+    enableTracing: true
+    defaultConfig:
+      tracing:
+        sampling: 100.0  # 100% sampling for dev, reduce for prod
+
+    # Proxy settings
+    defaultConfig:
+      holdApplicationUntilProxyStarts: true
+
+    # Outbound traffic policy
+    outboundTrafficPolicy:
+      mode: ALLOW_ANY  # or REGISTRY_ONLY for strict mode
+
+  # Component configurations
+  components:
+    # Istiod (control plane)
+    pilot:
+      enabled: true
+      k8s:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        hpaSpec:
+          minReplicas: 1
+          maxReplicas: 3
+
+    # Ingress Gateway
+    ingressGateways:
+      - name: istio-ingressgateway
+        enabled: true
+        k8s:
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          hpaSpec:
+            minReplicas: 1
+            maxReplicas: 3
+          service:
+            type: LoadBalancer
+            ports:
+              - port: 80
+                targetPort: 8080
+                name: http2
+              - port: 443
+                targetPort: 8443
+                name: https
+
+    # Egress Gateway (optional)
+    egressGateways:
+      - name: istio-egressgateway
+        enabled: false
+
+  # Global settings
+  values:
+    global:
+      # Proxy settings
+      proxy:
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+
+      # Enable auto mTLS
+      mtls:
+        auto: true
+
+    # Sidecar injector
+    sidecarInjectorWebhook:
+      enableNamespacesByDefault: false
+      objectSelector:
+        enabled: true

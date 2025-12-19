@@ -1,0 +1,73 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Kiali - Service Mesh Observability Dashboard
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kiali-operator
+---
+apiVersion: kiali.io/v1alpha1
+kind: Kiali
+metadata:
+  name: kiali
+  namespace: istio-system
+spec:
+  # Installation namespace
+  installation_tag: "Kiali [istio-system]"
+
+  # Istio namespace
+  istio_namespace: istio-system
+
+  # Deployment settings
+  deployment:
+    accessible_namespaces:
+      - "**"
+    ingress:
+      enabled: false  # Use Istio Gateway instead
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+
+  # Authentication (anonymous for dev, use OpenID for prod)
+  auth:
+    strategy: anonymous  # Options: anonymous, openid, token
+
+  # External services
+  external_services:
+    prometheus:
+      url: "http://prometheus-server.prometheus.svc.cluster.local:80"
+
+    grafana:
+      enabled: true
+      in_cluster_url: "http://grafana.grafana.svc.cluster.local:80"
+      url: ""  # External URL
+
+    tracing:
+      enabled: true
+      in_cluster_url: "http://jaeger-query.istio-system.svc.cluster.local:16686"
+      url: ""  # External URL
+
+  # Server settings
+  server:
+    web_root: "/kiali"
+---
+# VirtualService for Kiali access
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kiali
+  namespace: istio-system
+spec:
+  hosts:
+    - "kiali.example.com"
+  gateways:
+    - main-gateway
+  http:
+    - route:
+        - destination:
+            host: kiali
+            port:
+              number: 20001
