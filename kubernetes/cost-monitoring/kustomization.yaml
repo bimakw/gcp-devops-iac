@@ -1,0 +1,15 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Cost Monitoring Kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: cost-monitoring
+
+resources:
+  - namespace.yaml
+  - grafana/cost-dashboard-configmap.yaml
+  - kubecost/
+
+commonLabels:
+  app.kubernetes.io/part-of: cost-monitoring
+  app.kubernetes.io/managed-by: kustomize
