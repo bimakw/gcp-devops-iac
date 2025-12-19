@@ -5,6 +5,8 @@
 !*.tfvars.example
 .terraform/
 .terraform.lock.hcl
+backend.tf
+!backend.tf.example
 crash.log
 override.tf
 override.tf.json
