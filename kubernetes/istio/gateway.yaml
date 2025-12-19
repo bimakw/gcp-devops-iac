@@ -1,0 +1,48 @@
+# Copyright (c) 2024 Bima Kharisma Wicaksana
+# Istio Gateway Configuration
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: main-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    # HTTP server (redirects to HTTPS)
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*.example.com"
+      tls:
+        httpsRedirect: true
+
+    # HTTPS server
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - "*.example.com"
+      tls:
+        mode: SIMPLE
+        credentialName: wildcard-example-com-tls  # From cert-manager
+---
+# Gateway for internal services (no TLS)
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: internal-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*.internal.cluster.local"
