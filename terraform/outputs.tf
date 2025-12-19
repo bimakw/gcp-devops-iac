@@ -85,6 +85,27 @@ output "api_key_secret_id" {
   value       = module.secrets.api_key_secret_id
 }
 
+# Memorystore (Redis) Outputs
+output "redis_host" {
+  description = "Redis instance host IP"
+  value       = var.create_redis ? module.memorystore[0].host : null
+}
+
+output "redis_port" {
+  description = "Redis instance port"
+  value       = var.create_redis ? module.memorystore[0].port : null
+}
+
+output "redis_connection_string" {
+  description = "Redis connection string"
+  value       = var.create_redis ? module.memorystore[0].connection_string : null
+}
+
+output "redis_auth_secret_id" {
+  description = "Secret ID for Redis auth string"
+  value       = var.create_redis ? module.memorystore[0].auth_secret_id : null
+}
+
 # Summary
 output "summary" {
   description = "Infrastructure Summary"

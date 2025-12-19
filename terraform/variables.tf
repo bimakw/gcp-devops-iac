@@ -203,3 +203,40 @@ variable "create_default_secrets" {
   type        = bool
   default     = true
 }
+
+# Memorystore (Redis) Configuration
+variable "create_redis" {
+  description = "Create Memorystore Redis instance"
+  type        = bool
+  default     = false
+}
+
+variable "redis_tier" {
+  description = "Redis tier (BASIC or STANDARD_HA)"
+  type        = string
+  default     = "BASIC"
+}
+
+variable "redis_memory_size_gb" {
+  description = "Redis memory size in GB"
+  type        = number
+  default     = 1
+}
+
+variable "redis_version" {
+  description = "Redis version"
+  type        = string
+  default     = "REDIS_7_0"
+}
+
+variable "redis_auth_enabled" {
+  description = "Enable Redis AUTH"
+  type        = bool
+  default     = true
+}
+
+variable "redis_enable_tls" {
+  description = "Enable TLS for Redis"
+  type        = bool
+  default     = true
+}
