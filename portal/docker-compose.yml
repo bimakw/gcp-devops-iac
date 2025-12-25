@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: infra-portal-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: infra_portal
+    ports:
+      - "15433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: infra-portal-backend
+    environment:
+      PORT: "8080"
+      ENV: development
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/infra_portal?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-development-secret-change-in-production}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: http://localhost:10800/api/auth/google/callback
+      FRONTEND_URL: http://localhost:10300
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID:-}
+      GCP_REGION: ${GCP_REGION:-asia-southeast1}
+    ports:
+      - "10800:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: infra-portal-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:10800/api
+    ports:
+      - "10300:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
