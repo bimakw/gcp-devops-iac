@@ -106,23 +106,23 @@ module "networking" {
 module "gke" {
   source = "./modules/gke"
 
-  project_id              = var.project_id
-  project_name            = var.project_name
-  region                  = var.region
-  environment             = var.environment
-  vpc_id                  = module.networking.vpc_id
-  subnet_id               = module.networking.private_subnet_id
-  pods_range_name         = module.networking.pods_range_name
-  services_range_name     = module.networking.services_range_name
-  private_vpc_connection  = module.networking.private_vpc_connection
-  node_service_account    = google_service_account.gke_nodes.email
-  deletion_protection     = var.gke_deletion_protection
-  enable_private_endpoint = var.gke_enable_private_endpoint
-  master_authorized_networks = var.gke_master_authorized_networks
-  primary_pool_machine_type  = var.gke_machine_type
+  project_id                  = var.project_id
+  project_name                = var.project_name
+  region                      = var.region
+  environment                 = var.environment
+  vpc_id                      = module.networking.vpc_id
+  subnet_id                   = module.networking.private_subnet_id
+  pods_range_name             = module.networking.pods_range_name
+  services_range_name         = module.networking.services_range_name
+  private_vpc_connection      = module.networking.private_vpc_connection
+  node_service_account        = google_service_account.gke_nodes.email
+  deletion_protection         = var.gke_deletion_protection
+  enable_private_endpoint     = var.gke_enable_private_endpoint
+  master_authorized_networks  = var.gke_master_authorized_networks
+  primary_pool_machine_type   = var.gke_machine_type
   primary_pool_min_node_count = var.gke_min_nodes
   primary_pool_max_node_count = var.gke_max_nodes
-  create_spot_pool        = var.gke_create_spot_pool
+  create_spot_pool            = var.gke_create_spot_pool
 
   depends_on = [module.networking, google_service_account.gke_nodes]
 }
@@ -167,18 +167,18 @@ module "artifact_registry" {
 module "cloud_build" {
   source = "./modules/cloud-build"
 
-  project_id            = var.project_id
-  project_name          = var.project_name
-  region                = var.region
-  environment           = var.environment
-  github_owner          = var.github_owner
-  github_repo_name      = var.github_repo_name
-  artifact_registry_url = module.artifact_registry.docker_repository_url
-  gke_cluster_name      = module.gke.cluster_name
-  create_push_trigger   = var.create_cloudbuild_triggers
+  project_id             = var.project_id
+  project_name           = var.project_name
+  region                 = var.region
+  environment            = var.environment
+  github_owner           = var.github_owner
+  github_repo_name       = var.github_repo_name
+  artifact_registry_url  = module.artifact_registry.docker_repository_url
+  gke_cluster_name       = module.gke.cluster_name
+  create_push_trigger    = var.create_cloudbuild_triggers
   create_develop_trigger = var.create_cloudbuild_triggers
-  create_pr_trigger     = var.create_cloudbuild_triggers
-  create_tag_trigger    = var.create_cloudbuild_triggers
+  create_pr_trigger      = var.create_cloudbuild_triggers
+  create_tag_trigger     = var.create_cloudbuild_triggers
 
   depends_on = [google_project_service.apis]
 }
@@ -187,14 +187,14 @@ module "cloud_build" {
 module "monitoring" {
   source = "./modules/monitoring"
 
-  project_id            = var.project_id
-  project_name          = var.project_name
-  region                = var.region
-  environment           = var.environment
-  alert_email_addresses = var.alert_email_addresses
-  create_gke_alerts     = var.create_monitoring_alerts
+  project_id             = var.project_id
+  project_name           = var.project_name
+  region                 = var.region
+  environment            = var.environment
+  alert_email_addresses  = var.alert_email_addresses
+  create_gke_alerts      = var.create_monitoring_alerts
   create_cloudsql_alerts = var.create_monitoring_alerts
-  uptime_check_urls     = var.uptime_check_urls
+  uptime_check_urls      = var.uptime_check_urls
 
   depends_on = [google_project_service.apis]
 }
@@ -203,14 +203,14 @@ module "monitoring" {
 module "secrets" {
   source = "./modules/secrets"
 
-  project_id                = var.project_id
-  project_name              = var.project_name
-  region                    = var.region
-  environment               = var.environment
-  create_default_secrets    = var.create_default_secrets
-  default_secret_accessors  = [google_service_account.gke_nodes.email]
-  gke_namespace             = "default"
-  gke_service_account_name  = "default"
+  project_id               = var.project_id
+  project_name             = var.project_name
+  region                   = var.region
+  environment              = var.environment
+  create_default_secrets   = var.create_default_secrets
+  default_secret_accessors = [google_service_account.gke_nodes.email]
+  gke_namespace            = "default"
+  gke_service_account_name = "default"
 
   depends_on = [google_project_service.apis]
 }
@@ -241,18 +241,18 @@ module "cloud_armor" {
   source = "./modules/cloud-armor"
   count  = var.create_cloud_armor ? 1 : 0
 
-  project_id                   = var.project_id
-  project_name                 = var.project_name
-  environment                  = var.environment
-  enable_owasp_rules           = var.cloud_armor_enable_owasp
-  owasp_action                 = var.cloud_armor_owasp_action
-  enable_rate_limiting         = var.cloud_armor_enable_rate_limiting
+  project_id                       = var.project_id
+  project_name                     = var.project_name
+  environment                      = var.environment
+  enable_owasp_rules               = var.cloud_armor_enable_owasp
+  owasp_action                     = var.cloud_armor_owasp_action
+  enable_rate_limiting             = var.cloud_armor_enable_rate_limiting
   rate_limit_requests_per_interval = var.cloud_armor_rate_limit_requests
-  rate_limit_interval_sec      = var.cloud_armor_rate_limit_interval
-  blocked_countries            = var.cloud_armor_blocked_countries
-  allowlist_ips                = var.cloud_armor_allowlist_ips
-  blocklist_ips                = var.cloud_armor_blocklist_ips
-  enable_adaptive_protection   = var.cloud_armor_enable_adaptive_protection
+  rate_limit_interval_sec          = var.cloud_armor_rate_limit_interval
+  blocked_countries                = var.cloud_armor_blocked_countries
+  allowlist_ips                    = var.cloud_armor_allowlist_ips
+  blocklist_ips                    = var.cloud_armor_blocklist_ips
+  enable_adaptive_protection       = var.cloud_armor_enable_adaptive_protection
 
   depends_on = [google_project_service.apis]
 }

@@ -26,7 +26,7 @@ resource "google_redis_instance" "cache" {
 
   # Redis configuration
   redis_configs = {
-    maxmemory-policy = var.maxmemory_policy
+    maxmemory-policy       = var.maxmemory_policy
     notify-keyspace-events = var.enable_keyspace_notifications ? "Ex" : ""
   }
 

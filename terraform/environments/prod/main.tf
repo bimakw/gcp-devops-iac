@@ -18,13 +18,13 @@ module "infrastructure" {
   services_cidr       = "10.2.0.0/16"
 
   # GKE - Production grade
-  gke_deletion_protection     = true
-  gke_enable_private_endpoint = true
+  gke_deletion_protection        = true
+  gke_enable_private_endpoint    = true
   gke_master_authorized_networks = var.master_authorized_networks
-  gke_machine_type            = "e2-standard-4"
-  gke_min_nodes               = 2
-  gke_max_nodes               = 10
-  gke_create_spot_pool        = true
+  gke_machine_type               = "e2-standard-4"
+  gke_min_nodes                  = 2
+  gke_max_nodes                  = 10
+  gke_create_spot_pool           = true
 
   # Cloud SQL - HA for production
   cloudsql_tier                = "db-custom-4-8192"
@@ -39,7 +39,7 @@ module "infrastructure" {
   uptime_check_urls        = var.uptime_checks
 
   # CI/CD
-  github_owner              = var.github_owner
-  github_repo_name          = var.github_repo_name
+  github_owner               = var.github_owner
+  github_repo_name           = var.github_repo_name
   create_cloudbuild_triggers = true
 }

@@ -2,8 +2,8 @@
 # TFLint Configuration for GCP Terraform
 
 config {
-  # Enable module inspection
-  module = true
+  # Enable module inspection (call_module_type replaces deprecated 'module' in v0.54+)
+  call_module_type = "all"
 
   # Force to return error code when issues found
   force = false

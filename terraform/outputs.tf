@@ -125,7 +125,7 @@ output "cloud_armor_backend_config_yaml" {
 # Summary
 output "summary" {
   description = "Infrastructure Summary"
-  value = <<-EOT
+  value       = <<-EOT
 
     ============================================
     GCP DevOps Infrastructure - ${var.project_name}

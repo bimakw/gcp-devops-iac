@@ -37,7 +37,7 @@ module "infrastructure" {
   alert_email_addresses    = var.alert_emails
 
   # CI/CD
-  github_owner              = var.github_owner
-  github_repo_name          = var.github_repo_name
+  github_owner               = var.github_owner
+  github_repo_name           = var.github_repo_name
   create_cloudbuild_triggers = var.enable_cloudbuild
 }

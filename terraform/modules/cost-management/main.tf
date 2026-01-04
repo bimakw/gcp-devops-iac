@@ -181,11 +181,11 @@ resource "google_pubsub_subscription_iam_member" "budget_subscriber" {
 # Resource labels for cost allocation
 locals {
   cost_allocation_labels = {
-    environment  = var.environment
-    project      = var.project_name
-    cost_center  = var.cost_center
-    team         = var.team
-    managed_by   = "terraform"
+    environment = var.environment
+    project     = var.project_name
+    cost_center = var.cost_center
+    team        = var.team
+    managed_by  = "terraform"
   }
 }
 
