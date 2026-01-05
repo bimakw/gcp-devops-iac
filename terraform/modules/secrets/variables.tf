@@ -14,12 +14,6 @@ variable "project_name" {
   type        = string
 }
 
-variable "region" {
-  description = "GCP Region"
-  type        = string
-  default     = "asia-southeast1"
-}
-
 variable "environment" {
   description = "Environment (dev, staging, prod)"
   type        = string

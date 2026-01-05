@@ -204,7 +204,6 @@ module "secrets" {
 
   project_id               = var.project_id
   project_name             = var.project_name
-  region                   = var.region
   environment              = var.environment
   create_default_secrets   = var.create_default_secrets
   default_secret_accessors = [google_service_account.gke_nodes.email]

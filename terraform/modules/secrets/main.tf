@@ -6,6 +6,21 @@
  * Creates and manages secrets in Google Secret Manager
  */
 
+terraform {
+  required_version = ">= 1.0.0"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 4.0.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.0.0"
+    }
+  }
+}
+
 # Create secrets from map
 resource "google_secret_manager_secret" "secrets" {
   for_each = var.secrets

@@ -6,6 +6,17 @@
  * GCS bucket for Velero backups
  */
 
+terraform {
+  required_version = ">= 1.0.0"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 4.0.0"
+    }
+  }
+}
+
 # GCS Bucket for Velero backups
 resource "google_storage_bucket" "velero_backup" {
   name     = "${var.project_id}-velero-backups"
