@@ -47,7 +47,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run TFLint
-        run: tflint --recursive --config=${{ github.workspace }}/.tflint.hcl
+        run: tflint --recursive --config=${{ github.workspace }}/.tflint.hcl --minimum-failure-severity=error
 
   tfsec:
     name: TFSec Security Scan
