@@ -110,12 +110,7 @@ rule "google_compute_instance_invalid_machine_type" {
   enabled = true
 }
 
-# Warn about invalid disk types
-rule "google_compute_disk_invalid_type" {
-  enabled = true
-}
-
-# Warn about invalid regions
+# Warn about invalid IAM members
 rule "google_project_iam_member_invalid_member" {
   enabled = true
 }
