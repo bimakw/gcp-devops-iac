@@ -27,7 +27,8 @@ Thumbs.db
 # Secrets
 *.pem
 *.key
-secrets/
+/secrets/
+!terraform/modules/secrets/
 .env
 .env.*
 
