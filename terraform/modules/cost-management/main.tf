@@ -6,6 +6,17 @@
  * Budget alerts, cost allocation, and optimization
  */
 
+terraform {
+  required_version = ">= 1.0.0"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 4.0.0"
+    }
+  }
+}
+
 # Pub/Sub topic for budget alerts
 resource "google_pubsub_topic" "budget_alerts" {
   name    = "${var.project_name}-budget-alerts"

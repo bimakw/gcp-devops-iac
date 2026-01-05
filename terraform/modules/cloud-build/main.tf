@@ -6,6 +6,17 @@
  * Creates Cloud Build triggers, service accounts, and configurations
  */
 
+terraform {
+  required_version = ">= 1.0.0"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 4.0.0"
+    }
+  }
+}
+
 # Cloud Build Service Account
 resource "google_service_account" "cloudbuild" {
   account_id   = "${var.project_name}-cloudbuild"

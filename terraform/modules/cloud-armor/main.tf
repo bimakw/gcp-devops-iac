@@ -6,6 +6,17 @@
  * Web Application Firewall for DDoS protection and security
  */
 
+terraform {
+  required_version = ">= 1.0.0"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 4.0.0"
+    }
+  }
+}
+
 # Security Policy
 resource "google_compute_security_policy" "policy" {
   name        = "${var.project_name}-security-policy-${var.environment}"

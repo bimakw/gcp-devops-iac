@@ -6,6 +6,21 @@
  * Creates Cloud SQL PostgreSQL instance with High Availability
  */
 
+terraform {
+  required_version = ">= 1.0.0"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 4.0.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.0.0"
+    }
+  }
+}
+
 # Random suffix for instance name (Cloud SQL names must be unique)
 resource "random_id" "db_name_suffix" {
   byte_length = 4

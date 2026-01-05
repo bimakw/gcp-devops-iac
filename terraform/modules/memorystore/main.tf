@@ -6,6 +6,17 @@
  * Managed Redis instance for caching
  */
 
+terraform {
+  required_version = ">= 1.0.0"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 4.0.0"
+    }
+  }
+}
+
 # Redis Instance
 resource "google_redis_instance" "cache" {
   name           = "${var.project_name}-redis-${var.environment}"
@@ -30,13 +41,8 @@ resource "google_redis_instance" "cache" {
     notify-keyspace-events = var.enable_keyspace_notifications ? "Ex" : ""
   }
 
-  # High Availability (for STANDARD_HA tier)
-  dynamic "replica_count" {
-    for_each = var.tier == "STANDARD_HA" ? [1] : []
-    content {
-      # HA tier automatically manages replicas
-    }
-  }
+  # Note: replica_count is automatically managed by the STANDARD_HA tier
+  # and cannot be set manually
 
   # Maintenance window
   maintenance_policy {

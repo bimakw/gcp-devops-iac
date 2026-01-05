@@ -6,6 +6,17 @@
  * Creates VPC, Subnets, Cloud NAT, and Firewall Rules
  */
 
+terraform {
+  required_version = ">= 1.0.0"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 4.0.0"
+    }
+  }
+}
+
 # VPC Network
 resource "google_compute_network" "vpc" {
   name                            = "${var.project_name}-vpc"
