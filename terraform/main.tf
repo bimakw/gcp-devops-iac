@@ -152,15 +152,14 @@ module "cloudsql" {
 module "artifact_registry" {
   source = "./modules/artifact-registry"
 
-  project_id                 = var.project_id
-  project_name               = var.project_name
-  region                     = var.region
-  environment                = var.environment
-  gke_service_account        = google_service_account.gke_nodes.email
-  cloudbuild_service_account = module.cloud_build.service_account_email
-  create_helm_repo           = var.create_helm_repo
+  project_id          = var.project_id
+  project_name        = var.project_name
+  region              = var.region
+  environment         = var.environment
+  gke_service_account = google_service_account.gke_nodes.email
+  create_helm_repo    = var.create_helm_repo
 
-  depends_on = [google_project_service.apis, module.cloud_build]
+  depends_on = [google_project_service.apis]
 }
 
 # Cloud Build Module
